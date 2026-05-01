@@ -206,7 +206,7 @@ export default function Assistant() {
                             <div className="flex-1 min-w-0">
                               <h4 className="font-medium text-sm truncate">{prod.name}</h4>
                               <p className="text-primary text-sm font-semibold mt-0.5">
-                                {new Intl.NumberFormat('en-US', { style: 'currency', currency: prod.currency }).format(prod.price)}
+                                {new Intl.NumberFormat('en-NG', { style: 'currency', currency: prod.currency }).format(prod.price)}
                               </p>
                             </div>
                           </Card>

@@ -13,7 +13,7 @@ export async function buildCart(sessionId: string) {
     .where(eq(cartItemsTable.sessionId, sessionId));
 
   if (items.length === 0) {
-    return { items: [], subtotal: 0, currency: "USD" };
+    return { items: [], subtotal: 0, currency: "NGN" };
   }
 
   const productIds = items.map((i) => i.productId);
@@ -43,7 +43,7 @@ export async function buildCart(sessionId: string) {
   return {
     items: cartItems,
     subtotal: Math.round(subtotal * 100) / 100,
-    currency: "USD",
+    currency: "NGN",
   };
 }
 

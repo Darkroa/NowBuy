@@ -101,7 +101,7 @@ export function ProductForm({ sellerName }: { sellerName: string }) {
         description: description.trim(),
         category: finalCategory,
         price: priceNum,
-        currency: "USD",
+        currency: "NGN",
         imageUrl: imageUrl.trim(),
         stock: Math.floor(stockNum),
         sellerName,
@@ -157,7 +157,7 @@ export function ProductForm({ sellerName }: { sellerName: string }) {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="p-price">Price (USD)</Label>
+          <Label htmlFor="p-price">Price (₦ NGN)</Label>
           <Input
             id="p-price"
             type="number"

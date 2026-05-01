@@ -21,7 +21,7 @@ router.post("/products", requireRole("admin", "pm"), async (req: Request, res: R
       description: d.description,
       category: d.category.toLowerCase(),
       price: d.price,
-      currency: d.currency ?? "USD",
+      currency: d.currency ?? "NGN",
       imageUrl: d.imageUrl,
       stock: d.stock,
       sellerName: d.sellerName,

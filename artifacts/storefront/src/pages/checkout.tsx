@@ -38,7 +38,7 @@ export default function Checkout() {
   }
 
   const fmt = (n: number) =>
-    new Intl.NumberFormat("en-US", { style: "currency", currency: cart.currency }).format(n);
+    new Intl.NumberFormat("en-NG", { style: "currency", currency: cart.currency }).format(n);
 
   return (
     <div className="container max-w-screen-lg mx-auto py-12 px-6">

@@ -119,7 +119,7 @@ export default function OrderDetail() {
                       <p className="text-sm text-muted-foreground mt-1">Qty: {item.quantity}</p>
                     </div>
                     <div className="text-left sm:text-right font-medium">
-                      {new Intl.NumberFormat('en-US', { style: 'currency', currency: order.currency }).format(item.unitPrice * item.quantity)}
+                      {new Intl.NumberFormat('en-NG', { style: 'currency', currency: order.currency }).format(item.unitPrice * item.quantity)}
                     </div>
                   </div>
                 </div>
@@ -136,7 +136,7 @@ export default function OrderDetail() {
             <div className="space-y-4 mb-6">
               <div className="flex justify-between text-muted-foreground">
                 <span>Subtotal</span>
-                <span>{new Intl.NumberFormat('en-US', { style: 'currency', currency: order.currency }).format(order.total)}</span>
+                <span>{new Intl.NumberFormat('en-NG', { style: 'currency', currency: order.currency }).format(order.total)}</span>
               </div>
               <div className="flex justify-between text-muted-foreground">
                 <span>Shipping</span>
@@ -144,7 +144,7 @@ export default function OrderDetail() {
               </div>
               <div className="border-t border-border/50 pt-4 flex justify-between font-bold text-xl">
                 <span>Total</span>
-                <span>{new Intl.NumberFormat('en-US', { style: 'currency', currency: order.currency }).format(order.total)}</span>
+                <span>{new Intl.NumberFormat('en-NG', { style: 'currency', currency: order.currency }).format(order.total)}</span>
               </div>
             </div>
           </Card>

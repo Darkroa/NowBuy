@@ -48,7 +48,7 @@ export async function placeOrderForSession(
       sessionId,
       status: "placed",
       total,
-      currency: "USD",
+      currency: "NGN",
       trackingCode: generateTrackingCode(),
       shippingAddress,
       placedBy,

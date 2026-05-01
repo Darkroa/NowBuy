@@ -104,7 +104,7 @@ export default function ProductDetail() {
           <p className="text-sm text-muted-foreground mb-6">By <span className="font-medium text-foreground">{product.sellerName}</span></p>
           
           <div className="text-3xl font-semibold mb-8">
-            {new Intl.NumberFormat('en-US', { style: 'currency', currency: product.currency }).format(product.price)}
+            {new Intl.NumberFormat('en-NG', { style: 'currency', currency: product.currency }).format(product.price)}
           </div>
           
           <div className="prose prose-sm md:prose-base text-muted-foreground mb-10">
