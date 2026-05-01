@@ -1,0 +1,270 @@
+import { useEffect, useState } from "react";
+import { Link, useLocation } from "wouter";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  useGetCart,
+  usePlaceOrder,
+  getGetCartQueryKey,
+  getListOrdersQueryKey,
+} from "@workspace/api-client-react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  ArrowLeft,
+  CheckCircle2,
+  Copy,
+  Building2,
+  Wallet,
+  Banknote,
+  Sparkles,
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+
+const STORAGE_KEY = "nb_checkout_address";
+
+type Method = "transfer" | "card" | "wallet";
+
+const METHODS: { id: Method; label: string; icon: React.ReactNode; hint: string }[] = [
+  { id: "transfer", label: "Bank transfer", icon: <Building2 className="h-4 w-4" />, hint: "Pay to the account below, then tap I've paid" },
+  { id: "card", label: "Card on delivery", icon: <Wallet className="h-4 w-4" />, hint: "Pay by card when your order arrives" },
+  { id: "wallet", label: "Mobile wallet", icon: <Banknote className="h-4 w-4" />, hint: "Send to NowBuy on your wallet app" },
+];
+
+export default function Payment() {
+  const [, setLocation] = useLocation();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const { data: cart, isLoading } = useGetCart();
+  const [method, setMethod] = useState<Method>("transfer");
+  const [reference] = useState(
+    () => "NB" + Math.random().toString(36).slice(2, 8).toUpperCase(),
+  );
+  const address =
+    typeof window !== "undefined" ? sessionStorage.getItem(STORAGE_KEY) ?? "" : "";
+
+  useEffect(() => {
+    if (!address) setLocation("/checkout");
+  }, [address, setLocation]);
+
+  useEffect(() => {
+    if (!isLoading && cart && cart.items.length === 0) setLocation("/cart");
+  }, [isLoading, cart, setLocation]);
+
+  const placeOrder = usePlaceOrder({
+    mutation: {
+      onSuccess: (order) => {
+        sessionStorage.removeItem(STORAGE_KEY);
+        queryClient.invalidateQueries({ queryKey: getGetCartQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getListOrdersQueryKey() });
+        toast({
+          title: "Payment received!",
+          description: "Your order is on the way.",
+        });
+        setLocation(`/orders/${order.id}`);
+      },
+      onError: () => {
+        toast({
+          title: "Couldn't place your order",
+          description: "Please try again in a moment.",
+          variant: "destructive",
+        });
+      },
+    },
+  });
+
+  if (isLoading || !cart) {
+    return (
+      <div className="container max-w-screen-lg mx-auto py-12 px-6">
+        <Skeleton className="h-10 w-64 mb-8" />
+        <Skeleton className="h-96 w-full rounded-2xl" />
+      </div>
+    );
+  }
+
+  const fmt = (n: number) =>
+    new Intl.NumberFormat("en-US", { style: "currency", currency: cart.currency }).format(n);
+
+  function confirmPaid() {
+    placeOrder.mutate({ data: { shippingAddress: address, placedBy: "user" } });
+  }
+
+  function copyToClipboard(text: string, label: string) {
+    navigator.clipboard.writeText(text).then(() =>
+      toast({ title: "Copied", description: `${label} copied to clipboard.` }),
+    );
+  }
+
+  return (
+    <div className="container max-w-screen-lg mx-auto py-12 px-6">
+      <Link href="/checkout">
+        <Button variant="ghost" className="mb-6 gap-2 pl-0 hover:bg-transparent hover:text-primary">
+          <ArrowLeft className="h-4 w-4" /> Back to shipping
+        </Button>
+      </Link>
+
+      <div className="mb-8">
+        <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground mb-2">
+          <span className="font-semibold text-primary">Step 2 of 2</span>
+          <span>· Payment</span>
+        </div>
+        <h1 className="font-serif text-4xl font-bold tracking-tight">Payment</h1>
+      </div>
+
+      <div className="grid lg:grid-cols-[1fr_360px] gap-10 items-start">
+        <div className="space-y-6">
+          <Card className="p-6 border-border/50 shadow-sm">
+            <h2 className="font-semibold text-lg mb-4">How would you like to pay?</h2>
+            <div className="grid gap-2">
+              {METHODS.map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => setMethod(m.id)}
+                  className={`flex items-center gap-3 rounded-xl border p-4 text-left transition-colors ${
+                    method === m.id
+                      ? "border-primary bg-primary/5"
+                      : "border-border/60 hover:border-primary/40 hover:bg-muted/40"
+                  }`}
+                >
+                  <div className={`flex h-9 w-9 items-center justify-center rounded-full ${method === m.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+                    {m.icon}
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-sm">{m.label}</p>
+                    <p className="text-xs text-muted-foreground">{m.hint}</p>
+                  </div>
+                  {method === m.id && (
+                    <CheckCircle2 className="h-5 w-5 text-primary" />
+                  )}
+                </button>
+              ))}
+            </div>
+          </Card>
+
+          {method === "transfer" && (
+            <Card className="p-6 border-border/50 shadow-sm bg-primary/5 border-primary/20">
+              <h3 className="font-semibold mb-4 flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" /> Bank transfer details
+              </h3>
+              <dl className="space-y-3 text-sm">
+                <PayRow label="Bank" value="NowBuy Trust Bank" onCopy={copyToClipboard} />
+                <PayRow label="Account name" value="NowBuy Marketplace Ltd" onCopy={copyToClipboard} />
+                <PayRow label="Account number" value="0123456789" onCopy={copyToClipboard} />
+                <PayRow label="Amount" value={fmt(cart.subtotal)} onCopy={copyToClipboard} />
+                <PayRow label="Reference" value={reference} onCopy={copyToClipboard} highlight />
+              </dl>
+              <p className="text-xs text-muted-foreground mt-4">
+                Include the reference so we can match your transfer to this order.
+              </p>
+            </Card>
+          )}
+
+          {method === "card" && (
+            <Card className="p-6 border-border/50 shadow-sm">
+              <p className="text-sm text-muted-foreground">
+                Our courier will bring a card terminal. You'll be charged{" "}
+                <span className="font-semibold text-foreground">{fmt(cart.subtotal)}</span>{" "}
+                when your order is delivered. Tap I've paid to confirm you're ready.
+              </p>
+            </Card>
+          )}
+
+          {method === "wallet" && (
+            <Card className="p-6 border-border/50 shadow-sm">
+              <p className="text-sm text-muted-foreground mb-3">
+                Open your mobile wallet and send <span className="font-semibold text-foreground">{fmt(cart.subtotal)}</span> to:
+              </p>
+              <div className="rounded-lg bg-muted/40 p-4 font-mono text-sm flex items-center justify-between">
+                <span>nowbuy@wallet</span>
+                <Button size="sm" variant="ghost" className="h-7" onClick={() => copyToClipboard("nowbuy@wallet", "Wallet ID")}>
+                  <Copy className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </Card>
+          )}
+
+          <Button
+            size="lg"
+            className="w-full h-14 text-base font-semibold gap-2"
+            disabled={placeOrder.isPending}
+            onClick={confirmPaid}
+          >
+            <CheckCircle2 className="h-5 w-5" />
+            {placeOrder.isPending ? "Placing order…" : `I've paid · ${fmt(cart.subtotal)}`}
+          </Button>
+        </div>
+
+        <Card className="p-6 border-border/50 shadow-sm sticky top-24">
+          <h2 className="font-serif font-bold text-xl mb-4">Order summary</h2>
+          <div className="space-y-3 mb-4 max-h-64 overflow-y-auto">
+            {cart.items.map((item) => (
+              <div key={item.productId} className="flex items-center gap-3">
+                <div className="h-12 w-12 shrink-0 overflow-hidden rounded-md border border-border/40 bg-muted/30">
+                  {item.product.imageUrl && (
+                    <img src={item.product.imageUrl} alt="" className="h-full w-full object-cover" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium line-clamp-1">{item.product.name}</p>
+                  <p className="text-xs text-muted-foreground">Qty {item.quantity}</p>
+                </div>
+                <span className="text-sm font-medium">
+                  {fmt(item.product.price * item.quantity)}
+                </span>
+              </div>
+            ))}
+          </div>
+          <div className="border-t border-border/50 pt-4 space-y-2">
+            <div className="flex justify-between text-sm text-muted-foreground">
+              <span>Subtotal</span>
+              <span>{fmt(cart.subtotal)}</span>
+            </div>
+            <div className="flex justify-between text-sm text-muted-foreground">
+              <span>Shipping</span>
+              <span>Free</span>
+            </div>
+            <div className="flex justify-between font-bold text-lg pt-2 border-t border-border/30">
+              <span>Total</span>
+              <span>{fmt(cart.subtotal)}</span>
+            </div>
+          </div>
+          <div className="mt-4 pt-4 border-t border-border/50">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Shipping to</p>
+            <p className="text-sm whitespace-pre-line">{address}</p>
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function PayRow({
+  label,
+  value,
+  highlight,
+  onCopy,
+}: {
+  label: string;
+  value: string;
+  highlight?: boolean;
+  onCopy: (v: string, l: string) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4">
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="flex items-center gap-2">
+        <span className={`font-mono ${highlight ? "font-bold text-primary" : ""}`}>{value}</span>
+        <Button
+          size="icon"
+          variant="ghost"
+          className="h-7 w-7"
+          onClick={() => onCopy(value, label)}
+          aria-label={`Copy ${label}`}
+        >
+          <Copy className="h-3.5 w-3.5" />
+        </Button>
+      </dd>
+    </div>
+  );
+}

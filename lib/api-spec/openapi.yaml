@@ -1,22 +1,160 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: NowBuy API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
-    description: Health operations
+  - name: auth
+  - name: products
+  - name: cart
+  - name: orders
+  - name: chat
+  - name: admin
+  - name: Storage
+  - name: PasswordReset
 paths:
+  /admin/users/{id}/reset-code:
+    post:
+      tags: [PasswordReset]
+      operationId: createUserResetCode
+      summary: Generate a one-time password reset code for a user (admin only).
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Reset code generated.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ResetCodeResponse' }
+  /admin/self-reset-code:
+    post:
+      tags: [PasswordReset]
+      operationId: createAdminSelfResetCode
+      summary: Generate a one-time admin-scoped reset code for the current admin.
+      responses:
+        '200':
+          description: Admin reset code generated.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ResetCodeResponse' }
+  /auth/redeem-reset-code:
+    post:
+      tags: [PasswordReset]
+      operationId: redeemResetCode
+      summary: Redeem a password reset code and set a new password.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RedeemResetCodeRequest' }
+      responses:
+        '200':
+          description: Password updated.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthUser' }
+
+  /storage/uploads/request-url:
+    post:
+      tags: [Storage]
+      operationId: requestUploadUrl
+      summary: Request a presigned URL for file upload
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UploadUrlRequest'
+      responses:
+        '200':
+          description: Presigned upload URL generated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadUrlResponse'
+  /storage/objects/{objectPath}:
+    get:
+      tags: [Storage]
+      operationId: getStorageObject
+      summary: Serve an object entity from PRIVATE_OBJECT_DIR
+      parameters:
+        - name: objectPath
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Object content streamed.
+          content:
+            '*/*':
+              schema:
+                type: string
+                format: binary
+
+  /auth/signup:
+    post:
+      operationId: signUp
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignUpRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthUser"
+  /auth/signin:
+    post:
+      operationId: signIn
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignInRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthUser"
+  /auth/signout:
+    post:
+      operationId: signOut
+      tags: [auth]
+      responses:
+        "204":
+          description: Signed out
+  /auth/me:
+    get:
+      operationId: getCurrentUser
+      tags: [auth]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurrentUserResponse"
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,13 +162,552 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /products:
+    get:
+      operationId: listProducts
+      tags: [products]
+      summary: List products
+      parameters:
+        - name: category
+          in: query
+          schema: { type: string }
+        - name: q
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Product"
+    post:
+      operationId: createProduct
+      tags: [products]
+      summary: Create a product (admin/pm only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProductRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+  /products/{id}:
+    get:
+      operationId: getProduct
+      tags: [products]
+      summary: Get product
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+
+  /categories:
+    get:
+      operationId: listCategories
+      tags: [products]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Category"
+
+  /storefront/summary:
+    get:
+      operationId: getStorefrontSummary
+      tags: [products]
+      summary: Featured products + trending searches + top categories
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StorefrontSummary"
+
+  /cart:
+    get:
+      operationId: getCart
+      tags: [cart]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Cart"
+    delete:
+      operationId: clearCart
+      tags: [cart]
+      responses:
+        "204":
+          description: Cleared
+  /cart/items:
+    post:
+      operationId: addCartItem
+      tags: [cart]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddCartItemRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Cart"
+  /cart/items/{productId}:
+    delete:
+      operationId: removeCartItem
+      tags: [cart]
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Cart"
+
+  /orders:
+    get:
+      operationId: listOrders
+      tags: [orders]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Order"
+    post:
+      operationId: placeOrder
+      tags: [orders]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlaceOrderRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+  /orders/{id}:
+    get:
+      operationId: getOrder
+      tags: [orders]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+
+  /orders/{id}/status:
+    patch:
+      operationId: updateOrderStatus
+      tags: [orders]
+      summary: Update order status (admin/pm only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateOrderStatusRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+
+  /admin/users:
+    get:
+      operationId: listUsers
+      tags: [admin]
+      summary: List all users (admin only)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AuthUser"
+  /admin/users/{id}:
+    patch:
+      operationId: updateUserRole
+      tags: [admin]
+      summary: Update a user's role (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserRoleRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthUser"
+    delete:
+      operationId: deleteUser
+      tags: [admin]
+      summary: Delete a user (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "204":
+          description: Deleted
+
+  /admin/orders:
+    get:
+      operationId: listAllOrders
+      tags: [admin]
+      summary: List all orders across users (admin/pm only)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Order"
+
+  /chat/messages:
+    get:
+      operationId: listChatMessages
+      tags: [chat]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChatMessage"
+    post:
+      operationId: sendChatMessage
+      tags: [chat]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendChatMessageRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatTurnResponse"
+  /chat/reset:
+    post:
+      operationId: resetChat
+      tags: [chat]
+      responses:
+        "204":
+          description: Reset
+
 components:
   schemas:
     HealthStatus:
       type: object
       properties:
+        status: { type: string }
+      required: [status]
+
+    AuthUser:
+      type: object
+      properties:
+        id: { type: integer }
+        email: { type: string }
+        name: { type: string }
+        role: { type: string, enum: [buyer, admin, pm] }
+      required: [id, email, name, role]
+
+    CurrentUserResponse:
+      type: object
+      properties:
+        user:
+          oneOf:
+            - $ref: "#/components/schemas/AuthUser"
+            - type: "null"
+
+    SignUpRequest:
+      type: object
+      properties:
+        email: { type: string, format: email }
+        name: { type: string, minLength: 1 }
+        password: { type: string, minLength: 6 }
+      required: [email, name, password]
+
+    SignInRequest:
+      type: object
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, minLength: 1 }
+      required: [email, password]
+
+    Category:
+      type: object
+      properties:
+        slug: { type: string }
+        name: { type: string }
+        productCount: { type: integer }
+      required: [slug, name, productCount]
+
+    Product:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        description: { type: string }
+        category: { type: string }
+        price: { type: number }
+        currency: { type: string }
+        imageUrl: { type: string }
+        rating: { type: number }
+        stock: { type: integer }
+        sellerName: { type: string }
+        tags:
+          type: array
+          items: { type: string }
+      required: [id, name, description, category, price, currency, imageUrl, rating, stock, sellerName, tags]
+
+    ResetCodeResponse:
+      type: object
+      required: [code, expiresAt, scope, userEmail]
+      properties:
+        code: { type: string }
+        scope: { type: string, enum: [user, admin] }
+        userEmail: { type: string }
+        expiresAt: { type: string, format: date-time }
+    RedeemResetCodeRequest:
+      type: object
+      required: [email, code, newPassword]
+      properties:
+        email: { type: string, format: email }
+        code: { type: string, minLength: 4 }
+        newPassword: { type: string, minLength: 6 }
+
+    UploadUrlRequest:
+      type: object
+      required: [name, size, contentType]
+      properties:
+        name: { type: string, minLength: 1 }
+        size: { type: integer, minimum: 1 }
+        contentType: { type: string, minLength: 1 }
+    UploadUrlResponse:
+      type: object
+      required: [uploadURL, objectPath]
+      properties:
+        uploadURL: { type: string, format: uri }
+        objectPath: { type: string }
+
+    CreateProductRequest:
+      type: object
+      properties:
+        name: { type: string, minLength: 1 }
+        description: { type: string, minLength: 1 }
+        category: { type: string, minLength: 1 }
+        price: { type: number, minimum: 0 }
+        currency: { type: string, default: USD }
+        imageUrl: { type: string, minLength: 1 }
+        stock: { type: integer, minimum: 0 }
+        sellerName: { type: string, minLength: 1 }
+        tags:
+          type: array
+          items: { type: string }
+      required: [name, description, category, price, imageUrl, stock, sellerName]
+
+    UpdateOrderStatusRequest:
+      type: object
+      properties:
         status:
           type: string
-      required:
-        - status
+          enum: [placed, processing, shipped, delivered]
+      required: [status]
 
+    UpdateUserRoleRequest:
+      type: object
+      properties:
+        role:
+          type: string
+          enum: [buyer, admin, pm]
+      required: [role]
+
+    StorefrontSummary:
+      type: object
+      properties:
+        featured:
+          type: array
+          items: { $ref: "#/components/schemas/Product" }
+        topCategories:
+          type: array
+          items: { $ref: "#/components/schemas/Category" }
+        trendingSearches:
+          type: array
+          items: { type: string }
+      required: [featured, topCategories, trendingSearches]
+
+    CartItem:
+      type: object
+      properties:
+        productId: { type: integer }
+        quantity: { type: integer }
+        product: { $ref: "#/components/schemas/Product" }
+      required: [productId, quantity, product]
+
+    Cart:
+      type: object
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/CartItem" }
+        subtotal: { type: number }
+        currency: { type: string }
+      required: [items, subtotal, currency]
+
+    AddCartItemRequest:
+      type: object
+      properties:
+        productId: { type: integer }
+        quantity: { type: integer, minimum: 1 }
+      required: [productId, quantity]
+
+    OrderItem:
+      type: object
+      properties:
+        productId: { type: integer }
+        productName: { type: string }
+        quantity: { type: integer }
+        unitPrice: { type: number }
+        imageUrl: { type: string }
+      required: [productId, productName, quantity, unitPrice, imageUrl]
+
+    Order:
+      type: object
+      properties:
+        id: { type: integer }
+        status: { type: string, enum: [placed, processing, shipped, delivered] }
+        total: { type: number }
+        currency: { type: string }
+        trackingCode: { type: string }
+        shippingAddress: { type: string }
+        placedBy: { type: string, enum: [user, ai] }
+        createdAt: { type: string }
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/OrderItem" }
+      required: [id, status, total, currency, trackingCode, shippingAddress, placedBy, createdAt, items]
+
+    PlaceOrderRequest:
+      type: object
+      properties:
+        shippingAddress: { type: string, minLength: 3 }
+        placedBy:
+          type: string
+          enum: [user, ai]
+      required: [shippingAddress]
+
+    ChatMessage:
+      type: object
+      properties:
+        id: { type: integer }
+        role: { type: string, enum: [user, assistant, system] }
+        content: { type: string }
+        createdAt: { type: string }
+        productSuggestions:
+          type: array
+          items: { $ref: "#/components/schemas/Product" }
+      required: [id, role, content, createdAt]
+
+    SendChatMessageRequest:
+      type: object
+      properties:
+        content: { type: string, minLength: 1 }
+        confirmOrder:
+          type: boolean
+          description: When true, AI is authorized to place order with current cart
+        shippingAddress: { type: string }
+      required: [content]
+
+    ChatTurnResponse:
+      type: object
+      properties:
+        userMessage: { $ref: "#/components/schemas/ChatMessage" }
+        assistantMessage: { $ref: "#/components/schemas/ChatMessage" }
+        suggestedProducts:
+          type: array
+          items: { $ref: "#/components/schemas/Product" }
+        addedToCart:
+          type: array
+          items: { $ref: "#/components/schemas/CartItem" }
+        placedOrder:
+          $ref: "#/components/schemas/Order"
+        needsConfirmation:
+          type: boolean
+        needsShippingAddress:
+          type: boolean
+      required: [userMessage, assistantMessage, suggestedProducts, addedToCart, needsConfirmation, needsShippingAddress]
