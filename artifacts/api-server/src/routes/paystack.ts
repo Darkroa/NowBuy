@@ -42,12 +42,11 @@ router.post("/paystack/initialize", async (req: Request, res: Response) => {
   }
 
   const amountInKobo = Math.round(amount * 100);
-  const paystackCurrency = currency === "USD" ? "USD" : "NGN";
 
   const result = await paystackPost("/transaction/initialize", {
     email,
     amount: amountInKobo,
-    currency: paystackCurrency,
+    currency: "NGN",
     metadata: { sessionId: req.sessionId },
   });
 

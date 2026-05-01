@@ -13,7 +13,7 @@ export const ordersTable = pgTable("orders", {
   sessionId: text("session_id").notNull(),
   status: text("status").notNull().default("placed"),
   total: real("total").notNull(),
-  currency: text("currency").notNull().default("USD"),
+  currency: text("currency").notNull().default("NGN"),
   trackingCode: text("tracking_code").notNull(),
   shippingAddress: text("shipping_address").notNull(),
   placedBy: text("placed_by").notNull().default("user"),

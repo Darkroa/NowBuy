@@ -85,7 +85,7 @@ export default function Payment() {
   const fmt = useCallback(
     (n: number) =>
       cart
-        ? new Intl.NumberFormat("en-US", { style: "currency", currency: cart.currency }).format(n)
+        ? new Intl.NumberFormat("en-NG", { style: "currency", currency: cart.currency }).format(n)
         : "",
     [cart],
   );
@@ -128,7 +128,7 @@ export default function Payment() {
           key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
           email,
           amount: Math.round(cart.subtotal * 100),
-          currency: cart.currency === "USD" ? "USD" : "NGN",
+          currency: "NGN",
           ref: paystackRef,
           onClose: () => {
             setPaystackLoading(false);

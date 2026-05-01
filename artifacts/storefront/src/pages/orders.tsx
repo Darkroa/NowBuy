@@ -58,7 +58,7 @@ export default function Orders() {
                   <p className="text-muted-foreground mb-0.5">Total</p>
                   <p className="font-medium flex items-center gap-1.5">
                     <CreditCard className="h-3.5 w-3.5 text-muted-foreground" />
-                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: order.currency }).format(order.total)}
+                    {new Intl.NumberFormat('en-NG', { style: 'currency', currency: order.currency }).format(order.total)}
                   </p>
                 </div>
                 <div>

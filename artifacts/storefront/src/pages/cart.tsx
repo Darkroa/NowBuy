@@ -83,7 +83,7 @@ export default function Cart() {
                   </div>
                   <div className="text-right">
                     <p className="font-semibold whitespace-nowrap">
-                      {new Intl.NumberFormat('en-US', { style: 'currency', currency: item.product.currency }).format(item.product.price)}
+                      {new Intl.NumberFormat('en-NG', { style: 'currency', currency: item.product.currency }).format(item.product.price)}
                     </p>
                   </div>
                 </div>
@@ -115,7 +115,7 @@ export default function Cart() {
           <div className="space-y-4 mb-6">
             <div className="flex justify-between text-muted-foreground">
               <span>Subtotal ({cart.items.reduce((a, b) => a + b.quantity, 0)} items)</span>
-              <span>{new Intl.NumberFormat('en-US', { style: 'currency', currency: cart.currency }).format(cart.subtotal)}</span>
+              <span>{new Intl.NumberFormat('en-NG', { style: 'currency', currency: cart.currency }).format(cart.subtotal)}</span>
             </div>
             <div className="flex justify-between text-muted-foreground">
               <span>Shipping</span>
@@ -123,7 +123,7 @@ export default function Cart() {
             </div>
             <div className="border-t border-border/50 pt-4 flex justify-between font-bold text-xl">
               <span>Total</span>
-              <span>{new Intl.NumberFormat('en-US', { style: 'currency', currency: cart.currency }).format(cart.subtotal)}</span>
+              <span>{new Intl.NumberFormat('en-NG', { style: 'currency', currency: cart.currency }).format(cart.subtotal)}</span>
             </div>
           </div>
           

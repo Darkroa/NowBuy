@@ -17,7 +17,7 @@ export function ProductCard({ product }: { product: Product }) {
           />
           <div className="absolute top-3 right-3">
             <Badge variant="secondary" className="bg-background/80 backdrop-blur-sm font-semibold">
-              ${product.price.toFixed(2)}
+              {new Intl.NumberFormat("en-NG", { style: "currency", currency: product.currency }).format(product.price)}
             </Badge>
           </div>
           {product.stock < 5 && product.stock > 0 && (

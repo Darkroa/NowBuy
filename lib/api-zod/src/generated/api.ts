@@ -150,7 +150,7 @@ export const ListProductsResponse = zod.array(ListProductsResponseItem);
 
 export const createProductBodyPriceMin = 0;
 
-export const createProductBodyCurrencyDefault = `USD`;
+export const createProductBodyCurrencyDefault = `NGN`;
 export const createProductBodyStockMin = 0;
 
 export const CreateProductBody = zod.object({
