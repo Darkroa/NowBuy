@@ -28,6 +28,7 @@ import {
   LogOut,
   ChevronRight,
   UserCircle2,
+  Landmark,
 } from "lucide-react";
 
 type NavItem = {
@@ -41,6 +42,7 @@ const ADMIN_ITEMS: NavItem[] = [
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/orders", label: "Orders", icon: Package },
   { href: "/admin/catalog", label: "Add product", icon: PackagePlus },
+  { href: "/admin/bank", label: "Bank details", icon: Landmark },
   { href: "/admin/password", label: "Admin password", icon: KeyRound },
 ];
 

@@ -6,15 +6,17 @@ import { OrdersManager } from "@/components/orders-manager";
 import { UsersManager } from "@/components/users-manager";
 import { StaffPageHeader } from "@/components/staff-page-header";
 import { ChangeAdminPassword } from "@/components/change-admin-password";
+import { BankDetailsManager } from "@/components/bank-details-manager";
 import {
   ShieldCheck,
   Users as UsersIcon,
   Package,
   PackagePlus,
   KeyRound,
+  Landmark,
 } from "lucide-react";
 
-type Section = "dashboard" | "users" | "orders" | "catalog" | "password";
+type Section = "dashboard" | "users" | "orders" | "catalog" | "bank" | "password";
 
 export default function Admin({ section = "dashboard" }: { section?: Section }) {
   const [, setLocation] = useLocation();
@@ -76,6 +78,17 @@ export default function Admin({ section = "dashboard" }: { section?: Section }) 
             description="List a new item in the NowBuy catalog."
           />
           <ProductForm sellerName={me.name} />
+        </>
+      )}
+
+      {section === "bank" && (
+        <>
+          <StaffPageHeader
+            icon={Landmark}
+            title="Bank details"
+            description="Set the bank account shown to customers who pay by manual bank transfer."
+          />
+          <BankDetailsManager />
         </>
       )}
 
