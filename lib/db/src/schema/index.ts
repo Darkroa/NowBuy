@@ -4,3 +4,4 @@ export * from "./orders";
 export * from "./chat";
 export * from "./users";
 export * from "./password-reset";
+export * from "./settings";

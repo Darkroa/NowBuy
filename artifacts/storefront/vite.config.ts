@@ -28,6 +28,9 @@ if (!basePath) {
 
 export default defineConfig({
   base: basePath,
+  define: {
+    "import.meta.env.VITE_PAYSTACK_PUBLIC_KEY": JSON.stringify(process.env.PAYSTACK_PUBLIC_KEY ?? ""),
+  },
   plugins: [
     react(),
     tailwindcss(),

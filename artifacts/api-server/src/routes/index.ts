@@ -8,6 +8,7 @@ import chatRouter from "./chat";
 import adminRouter from "./admin";
 import storageRouter from "./storage";
 import passwordResetRouter from "./password-reset";
+import paystackRouter from "./paystack";
 
 const router: IRouter = Router();
 
@@ -20,5 +21,6 @@ router.use(chatRouter);
 router.use(adminRouter);
 router.use(storageRouter);
 router.use(passwordResetRouter);
+router.use(paystackRouter);
 
 export default router;
