@@ -127,12 +127,12 @@ export default function Products() {
         {/* Product Grid */}
         <div className="flex-1">
           {isProductsLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
               {[1, 2, 3, 4, 5, 6].map((i) => (
-                <div key={i} className="space-y-4">
+                <div key={i} className="space-y-3">
                   <Skeleton className="aspect-square rounded-xl" />
-                  <Skeleton className="h-4 w-2/3" />
-                  <Skeleton className="h-4 w-1/2" />
+                  <Skeleton className="h-3.5 w-2/3" />
+                  <Skeleton className="h-3.5 w-1/2" />
                 </div>
               ))}
             </div>
@@ -150,7 +150,7 @@ export default function Products() {
               </Button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
               {products?.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}

@@ -1,10 +1,11 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-import { db, ordersTable, cartItemsTable, productsTable } from "@workspace/db";
+import { db, ordersTable, cartItemsTable, productsTable, usersTable, notificationsTable } from "@workspace/db";
 import { and, eq, desc, inArray } from "drizzle-orm";
 import { PlaceOrderBody, UpdateOrderStatusBody } from "@workspace/api-zod";
 import { serializeOrder } from "../lib/serializers";
 import { generateTrackingCode } from "../lib/tracking";
 import { requireRole } from "../lib/auth";
+import { sendOrderEmail } from "./email";
 
 const router: IRouter = Router();
 
@@ -108,6 +109,31 @@ router.patch(
       res.status(404).json({ error: "Not found" });
       return;
     }
+
+    try {
+      const [userRow] = await db
+        .select()
+        .from(usersTable)
+        .where(eq(usersTable.id, Number(updated.sessionId)));
+
+      if (userRow?.email) {
+        await sendOrderEmail({
+          to: userRow.email,
+          name: userRow.name,
+          orderStatus: updated.status,
+          trackingCode: updated.trackingCode,
+          total: updated.total,
+          currency: updated.currency,
+          shippingAddress: updated.shippingAddress,
+        });
+        await db.insert(notificationsTable).values({
+          userId: userRow.id,
+          title: `Order ${updated.trackingCode}`,
+          message: `Your order status has been updated to: ${updated.status}.`,
+        });
+      }
+    } catch { /* non-fatal — order update still succeeds */ }
+
     res.json(serializeOrder(updated));
   },
 );

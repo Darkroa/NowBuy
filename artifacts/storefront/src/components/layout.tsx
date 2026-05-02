@@ -16,9 +16,11 @@ import {
   Store,
   LogOut,
   UserCircle2,
+  HeadphonesIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StaffSidebarTrigger } from "@/components/staff-sidebar";
+import { NotificationsBell } from "@/components/notifications-bell";
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
@@ -72,6 +74,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   <span className="hidden sm:inline">Orders</span>
                 </span>
               </Link>
+              <Link href="/support" className={`transition-colors hover:text-primary rounded-md px-2 py-1.5 ${location === "/support" ? "text-primary" : "text-muted-foreground"}`}>
+                <span className="flex items-center gap-1.5">
+                  <HeadphonesIcon className="h-4 w-4 shrink-0" />
+                  <span className="hidden sm:inline">Support</span>
+                </span>
+              </Link>
             </div>
 
             <div className="flex items-center space-x-1 shrink-0">
@@ -88,6 +96,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                       <span className="text-xs font-medium text-foreground truncate max-w-[120px]">{me.name}</span>
                     </div>
                   )}
+                  <NotificationsBell enabled={true} />
                   {!isStaff && (
                     <Button
                       variant="ghost"

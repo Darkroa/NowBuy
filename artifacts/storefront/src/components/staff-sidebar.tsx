@@ -29,6 +29,9 @@ import {
   ChevronRight,
   UserCircle2,
   Landmark,
+  Bell,
+  HeadphonesIcon,
+  LayoutList,
 } from "lucide-react";
 
 type NavItem = {
@@ -42,6 +45,9 @@ const ADMIN_ITEMS: NavItem[] = [
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/orders", label: "Orders", icon: Package },
   { href: "/admin/catalog", label: "Add product", icon: PackagePlus },
+  { href: "/admin/products", label: "Manage products", icon: LayoutList },
+  { href: "/admin/notifications", label: "Push notification", icon: Bell },
+  { href: "/admin/support", label: "Support desk", icon: HeadphonesIcon },
   { href: "/admin/bank", label: "Bank details", icon: Landmark },
   { href: "/admin/password", label: "Admin password", icon: KeyRound },
 ];
