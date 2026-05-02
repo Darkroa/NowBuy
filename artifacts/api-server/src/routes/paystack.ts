@@ -3,6 +3,7 @@ import { db, settingsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { placeOrderForSession } from "./orders";
 import { serializeOrder } from "../lib/serializers";
+import { requireRole } from "../lib/auth";
 import crypto from "crypto";
 
 const router: IRouter = Router();
@@ -127,13 +128,7 @@ router.get("/settings/bank", async (_req: Request, res: Response) => {
   }
 });
 
-router.put("/settings/bank", async (req: Request, res: Response) => {
-  const user = (req as Request & { user?: { role: string } }).user;
-  if (!user || user.role !== "admin") {
-    res.status(403).json({ error: "Forbidden" });
-    return;
-  }
-
+router.put("/settings/bank", requireRole("admin"), async (req: Request, res: Response) => {
   const { bankName, accountName, accountNumber } = req.body as {
     bankName: string;
     accountName: string;

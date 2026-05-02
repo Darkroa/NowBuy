@@ -5,3 +5,5 @@ export * from "./chat";
 export * from "./users";
 export * from "./password-reset";
 export * from "./settings";
+export * from "./notifications";
+export * from "./support-tickets";

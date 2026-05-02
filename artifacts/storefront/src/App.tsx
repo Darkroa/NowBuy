@@ -17,6 +17,8 @@ import Account from "@/pages/account";
 import Admin from "@/pages/admin";
 import PMConsole from "@/pages/pm";
 import ResetPassword from "@/pages/reset-password";
+import Notifications from "@/pages/notifications";
+import Support from "@/pages/support";
 
 const queryClient = new QueryClient();
 
@@ -36,12 +38,17 @@ function Router() {
         <Route path="/account" component={Account} />
         <Route path="/signin" component={Account} />
         <Route path="/signup" component={Account} />
+        <Route path="/notifications" component={Notifications} />
+        <Route path="/support" component={Support} />
         <Route path="/admin" component={() => <Admin section="dashboard" />} />
         <Route path="/admin/users" component={() => <Admin section="users" />} />
         <Route path="/admin/orders" component={() => <Admin section="orders" />} />
         <Route path="/admin/catalog" component={() => <Admin section="catalog" />} />
+        <Route path="/admin/products" component={() => <Admin section="products" />} />
         <Route path="/admin/bank" component={() => <Admin section="bank" />} />
         <Route path="/admin/password" component={() => <Admin section="password" />} />
+        <Route path="/admin/notifications" component={() => <Admin section="notifications" />} />
+        <Route path="/admin/support" component={() => <Admin section="support" />} />
         <Route path="/pm" component={() => <PMConsole section="dashboard" />} />
         <Route path="/pm/orders" component={() => <PMConsole section="orders" />} />
         <Route path="/pm/catalog" component={() => <PMConsole section="catalog" />} />

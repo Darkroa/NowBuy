@@ -23,7 +23,8 @@
     "google-auth-library": "^10.6.2",
     "paystack-node": "^0.3.0",
     "pino": "^9",
-    "pino-http": "^10"
+    "pino-http": "^10",
+    "resend": "^6.12.2"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
