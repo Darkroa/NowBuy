@@ -91,7 +91,7 @@ router.post("/paystack/verify", async (req: Request, res: Response) => {
   }
 
   if (user?.id) {
-    try { await sendPlacedEmailAndNotification(placed.order, user.id); } catch { /* non-fatal */ }
+    try { await sendPlacedEmailAndNotification(placed.order, user.id); } catch (err) { req.log.error({ err }, "paystack order email failed"); }
   }
 
   res.status(201).json(serializeOrder(placed.order));
