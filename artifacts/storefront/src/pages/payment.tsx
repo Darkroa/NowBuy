@@ -26,10 +26,11 @@ import { useToast } from "@/hooks/use-toast";
 
 const STORAGE_KEY = "nb_checkout_address";
 
-type Method = "paystack" | "transfer" | "delivery";
+type Method = "paystack" | "stripe" | "transfer" | "delivery";
 
 const METHODS: { id: Method; label: string; icon: React.ReactNode; hint: string }[] = [
-  { id: "paystack", label: "Pay with Paystack", icon: <CreditCard className="h-4 w-4" />, hint: "Card, bank transfer, USSD & more via Paystack" },
+  { id: "paystack", label: "Pay with Paystack", icon: <CreditCard className="h-4 w-4" />, hint: "Card, bank transfer, USSD & mobile money via Paystack" },
+  { id: "stripe", label: "Pay with Stripe", icon: <CreditCard className="h-4 w-4" />, hint: "Card payment via Stripe — Visa, Mastercard & more" },
   { id: "transfer", label: "Manual bank transfer", icon: <Building2 className="h-4 w-4" />, hint: "Transfer to our account and confirm below" },
   { id: "delivery", label: "Pay on delivery", icon: <Wallet className="h-4 w-4" />, hint: "Cash or card when your order arrives" },
 ];
@@ -44,7 +45,7 @@ export default function Payment() {
   const { data: authData } = useGetCurrentUser();
   const [method, setMethod] = useState<Method>("paystack");
   const [bankDetails, setBankDetails] = useState<BankDetails | null>(null);
-  const [paystackLoading, setPaystackLoading] = useState(false);
+  const [providerLoading, setProviderLoading] = useState(false);
   const [paystackRef, setPaystackRef] = useState<string | null>(null);
   const [verifying, setVerifying] = useState(false);
   const [reference] = useState(
@@ -52,7 +53,7 @@ export default function Payment() {
   );
 
   const address =
-    typeof window !== "undefined" ? sessionStorage.getItem(STORAGE_KEY) ?? "" : "";
+    typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEY) ?? "" : "";
 
   useEffect(() => {
     if (!address) setLocation("/checkout");
@@ -72,7 +73,7 @@ export default function Payment() {
   const placeOrder = usePlaceOrder({
     mutation: {
       onSuccess: (order) => {
-        sessionStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(STORAGE_KEY);
         queryClient.invalidateQueries({ queryKey: getGetCartQueryKey() });
         queryClient.invalidateQueries({ queryKey: getListOrdersQueryKey() });
         toast({ title: "Order placed!", description: "Your order is on the way." });
@@ -102,16 +103,25 @@ export default function Payment() {
     );
   }
 
+  function getCallbackUrl() {
+    return `${window.location.origin}/payment/callback`;
+  }
+
   async function openPaystackCheckout() {
     if (!cart) return;
-    setPaystackLoading(true);
+    setProviderLoading(true);
     const email = authData?.user?.email ?? "guest@nowbuy.app";
 
     try {
       const res = await fetch("/api/paystack/initialize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, amount: cart.subtotal, currency: cart.currency }),
+        body: JSON.stringify({
+          email,
+          amount: cart.subtotal,
+          currency: cart.currency,
+          callbackUrl: getCallbackUrl(),
+        }),
       });
       const data = await res.json() as { authorizationUrl?: string; reference?: string; error?: string };
 
@@ -125,7 +135,37 @@ export default function Payment() {
     } catch {
       toast({ title: "Network error", description: "Please try again.", variant: "destructive" });
     } finally {
-      setPaystackLoading(false);
+      setProviderLoading(false);
+    }
+  }
+
+  async function openStripeCheckout() {
+    if (!cart) return;
+    setProviderLoading(true);
+    const email = authData?.user?.email ?? "guest@nowbuy.app";
+
+    try {
+      const res = await fetch("/api/stripe/initialize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          amount: cart.subtotal,
+          callbackUrl: getCallbackUrl(),
+        }),
+      });
+      const data = await res.json() as { checkoutUrl?: string; sessionId?: string; error?: string };
+
+      if (!data.checkoutUrl) {
+        toast({ title: "Stripe error", description: data.error ?? "Could not initialize payment", variant: "destructive" });
+        return;
+      }
+
+      window.open(data.checkoutUrl, "_blank", "noopener");
+    } catch {
+      toast({ title: "Network error", description: "Please try again.", variant: "destructive" });
+    } finally {
+      setProviderLoading(false);
     }
   }
 
@@ -140,10 +180,10 @@ export default function Payment() {
       });
       const order = await verifyRes.json() as { id?: number; error?: string };
       if (!verifyRes.ok || order.error) {
-        toast({ title: "Payment not confirmed", description: order.error ?? "Payment not yet received. Please complete the checkout tab first.", variant: "destructive" });
+        toast({ title: "Payment not confirmed", description: order.error ?? "Complete the checkout tab first, then try again.", variant: "destructive" });
         return;
       }
-      sessionStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(STORAGE_KEY);
       queryClient.invalidateQueries({ queryKey: getGetCartQueryKey() });
       queryClient.invalidateQueries({ queryKey: getListOrdersQueryKey() });
       toast({ title: "Payment confirmed!", description: "Your order is on the way." });
@@ -208,26 +248,13 @@ export default function Payment() {
           </Card>
 
           {method === "paystack" && !paystackRef && (
-            <Card className="p-6 border-border/50 shadow-sm bg-primary/5 border-primary/20">
-              <h3 className="font-semibold mb-2 flex items-center gap-2">
-                <CreditCard className="h-4 w-4 text-primary" /> Pay securely with Paystack
-              </h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Click below to open Paystack's secure checkout in a new tab. Pay{" "}
-                <span className="font-semibold text-foreground">{fmt(cart.subtotal)}</span>{" "}
-                via card, bank transfer, USSD, or mobile money.
-              </p>
-              <Button
-                size="lg"
-                className="w-full h-12 text-base font-semibold gap-2"
-                disabled={paystackLoading}
-                onClick={openPaystackCheckout}
-              >
-                {paystackLoading
-                  ? <><Loader2 className="h-4 w-4 animate-spin" /> Opening Paystack…</>
-                  : <><ExternalLink className="h-4 w-4" /> Pay {fmt(cart.subtotal)} with Paystack</>}
-              </Button>
-            </Card>
+            <ProviderCard
+              title="Pay securely with Paystack"
+              description={<>Opens Paystack's checkout in a new tab. Pay <strong className="text-foreground">{fmt(cart.subtotal)}</strong> via card, bank transfer, USSD, or mobile money.</>}
+              buttonLabel={`Pay ${fmt(cart.subtotal)} with Paystack`}
+              loading={providerLoading}
+              onClick={openPaystackCheckout}
+            />
           )}
 
           {method === "paystack" && paystackRef && (
@@ -236,10 +263,10 @@ export default function Payment() {
                 <CheckCircle2 className="h-4 w-4 text-primary" /> Paystack checkout opened
               </h3>
               <p className="text-sm text-muted-foreground">
-                Complete your payment in the new tab, then come back here and click <strong>Confirm payment</strong>.
+                Complete your payment in the new tab, then click <strong>Confirm payment</strong> below.
               </p>
               <p className="text-xs text-muted-foreground font-mono bg-muted/40 rounded-md px-3 py-2">
-                Reference: {paystackRef}
+                Ref: {paystackRef}
               </p>
               <div className="flex gap-3 flex-wrap">
                 <Button size="lg" className="gap-2 flex-1" disabled={verifying} onClick={verifyPaystackPayment}>
@@ -250,6 +277,16 @@ export default function Payment() {
                 </Button>
               </div>
             </Card>
+          )}
+
+          {method === "stripe" && (
+            <ProviderCard
+              title="Pay securely with Stripe"
+              description={<>Opens Stripe's checkout in a new tab. Pay <strong className="text-foreground">{fmt(cart.subtotal)}</strong> via Visa, Mastercard, or other cards. After payment, you'll be redirected back automatically.</>}
+              buttonLabel={`Pay ${fmt(cart.subtotal)} with Stripe`}
+              loading={providerLoading}
+              onClick={openStripeCheckout}
+            />
           )}
 
           {method === "transfer" && (
@@ -342,6 +379,39 @@ export default function Payment() {
         </Card>
       </div>
     </div>
+  );
+}
+
+function ProviderCard({
+  title,
+  description,
+  buttonLabel,
+  loading,
+  onClick,
+}: {
+  title: string;
+  description: React.ReactNode;
+  buttonLabel: string;
+  loading: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <Card className="p-6 border-border/50 shadow-sm bg-primary/5 border-primary/20">
+      <h3 className="font-semibold mb-2 flex items-center gap-2">
+        <CreditCard className="h-4 w-4 text-primary" /> {title}
+      </h3>
+      <p className="text-sm text-muted-foreground mb-4">{description}</p>
+      <Button
+        size="lg"
+        className="w-full h-12 text-base font-semibold gap-2"
+        disabled={loading}
+        onClick={onClick}
+      >
+        {loading
+          ? <><Loader2 className="h-4 w-4 animate-spin" /> Opening…</>
+          : <><ExternalLink className="h-4 w-4" /> {buttonLabel}</>}
+      </Button>
+    </Card>
   );
 }
 

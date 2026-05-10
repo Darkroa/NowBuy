@@ -1,0 +1,98 @@
+NowBuy — Running the Project Locally
+======================================
+
+PREREQUISITES
+-------------
+- Node.js 24+          (https://nodejs.org)
+- pnpm 9+              (npm install -g pnpm)
+- PostgreSQL 15+       (https://www.postgresql.org/download)
+
+
+STEP 1 — Install dependencies
+------------------------------
+  pnpm install
+
+
+STEP 2 — Environment variables
+--------------------------------
+Create a file called .env in the project root (or export these in your shell).
+The server reads them at startup.
+
+  # PostgreSQL connection string
+  DATABASE_URL=postgresql://youruser:yourpassword@localhost:5432/nowbuy
+
+  # Session cookie signing secret (any random 32+ character string)
+  SESSION_SECRET=replace-with-a-long-random-string
+
+  # Resend (email delivery) — https://resend.com → API Keys
+  RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+  # Paystack (card payments) — https://dashboard.paystack.com → Settings → API Keys
+  PAYSTACK_SECRET_KEY=sk_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  PAYSTACK_PUBLIC_KEY=pk_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+  # Stripe (card payments) — https://dashboard.stripe.com → Developers → API Keys
+  STRIPE_SECRET_KEY=sk_test_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+  # Google Cloud Storage (product image uploads) — leave blank to disable uploads locally
+  DEFAULT_OBJECT_STORAGE_BUCKET_ID=your-gcs-bucket-name
+  PRIVATE_OBJECT_DIR=uploads
+  PUBLIC_OBJECT_SEARCH_PATHS=uploads
+
+
+STEP 3 — Create the database and push schema
+---------------------------------------------
+  createdb nowbuy                          # or create via psql / pgAdmin
+  pnpm --filter @workspace/db run push     # pushes all tables
+
+
+STEP 4 — Build and start the API server
+-----------------------------------------
+  pnpm --filter @workspace/api-server run build
+  PORT=8080 BASE_PATH=/api node --enable-source-maps artifacts/api-server/dist/index.mjs
+
+  The API will be available at http://localhost:8080/api
+
+
+STEP 5 — Start the storefront (Vite dev server)
+-------------------------------------------------
+  PORT=3000 BASE_PATH=/ pnpm --filter @workspace/storefront run dev
+
+  Open http://localhost:3000 in your browser.
+
+  NOTE: The storefront expects the API at /api.
+  In local dev, you need a reverse proxy or Vite proxy.
+  Quickest option — add this to artifacts/storefront/vite.config.ts inside server{}:
+    proxy: { '/api': 'http://localhost:8080' }
+
+
+ADMIN ACCOUNT (pre-seeded or create via /signup then update role in DB)
+------------------------------------------------------------------------
+  Email:    admin@nowbuy.app
+  Password: nowbuyadmin1234
+
+  To set an account as admin in psql:
+    UPDATE users SET role = 'admin' WHERE email = 'admin@nowbuy.app';
+
+
+USEFUL COMMANDS
+---------------
+  pnpm run typecheck                           — typecheck all packages
+  pnpm --filter @workspace/api-spec run codegen — regenerate API hooks from OpenAPI spec
+  pnpm --filter @workspace/db run push         — push DB schema changes (dev only)
+  pnpm --filter @workspace/api-server run build — rebuild the API server
+
+
+PAYMENT TESTING
+---------------
+  Paystack test cards: https://paystack.com/docs/payments/test-payments
+  Stripe test cards:   https://stripe.com/docs/testing#cards
+    - Visa success:    4242 4242 4242 4242  Exp: any future  CVC: any
+    - Auth required:   4000 0025 0000 3155
+
+
+GIT / GITHUB
+------------
+  Use Replit's built-in Version Control panel (branch icon in the left sidebar)
+  to connect and push to GitHub. Do not run git commands directly in the shell
+  inside Replit — use the UI panel instead.

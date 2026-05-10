@@ -4,7 +4,7 @@ import { and, eq, desc, inArray } from "drizzle-orm";
 import { PlaceOrderBody, UpdateOrderStatusBody } from "@workspace/api-zod";
 import { serializeOrder } from "../lib/serializers";
 import { generateTrackingCode } from "../lib/tracking";
-import { requireRole } from "../lib/auth";
+import { requireRole, getUserFromCookie } from "../lib/auth";
 import { sendOrderEmail } from "./email";
 
 const router: IRouter = Router();
@@ -13,6 +13,7 @@ export async function placeOrderForSession(
   sessionId: string,
   shippingAddress: string,
   placedBy: "user" | "ai",
+  userId?: number,
 ) {
   const items = await db
     .select()
@@ -47,6 +48,7 @@ export async function placeOrderForSession(
     .insert(ordersTable)
     .values({
       sessionId,
+      userId: userId ?? null,
       status: "placed",
       total,
       currency: "NGN",
@@ -60,6 +62,28 @@ export async function placeOrderForSession(
   await db.delete(cartItemsTable).where(eq(cartItemsTable.sessionId, sessionId));
 
   return { order: order! };
+}
+
+export async function sendPlacedEmailAndNotification(
+  order: { trackingCode: string; total: number; currency: string; shippingAddress: string },
+  userId: number,
+) {
+  const [userRow] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
+  if (!userRow?.email) return;
+  await sendOrderEmail({
+    to: userRow.email,
+    name: userRow.name,
+    orderStatus: "placed",
+    trackingCode: order.trackingCode,
+    total: order.total,
+    currency: order.currency,
+    shippingAddress: order.shippingAddress,
+  });
+  await db.insert(notificationsTable).values({
+    userId: userRow.id,
+    title: `Order ${order.trackingCode} placed`,
+    message: `Your order has been placed successfully. Total: ₦${order.total.toLocaleString()}.`,
+  });
 }
 
 router.get("/orders", async (req: Request, res: Response) => {
@@ -77,11 +101,15 @@ router.post("/orders", async (req: Request, res: Response) => {
     res.status(400).json({ error: "Invalid body" });
     return;
   }
+  const user = await getUserFromCookie(req);
   const placedBy = (parsed.data.placedBy as "user" | "ai" | undefined) ?? "user";
-  const result = await placeOrderForSession(req.sessionId, parsed.data.shippingAddress, placedBy);
+  const result = await placeOrderForSession(req.sessionId, parsed.data.shippingAddress, placedBy, user?.id);
   if ("error" in result) {
     res.status(400).json({ error: result.error });
     return;
+  }
+  if (user?.id) {
+    try { await sendPlacedEmailAndNotification(result.order, user.id); } catch { /* non-fatal */ }
   }
   res.status(201).json(serializeOrder(result.order));
 });
@@ -110,29 +138,31 @@ router.patch(
       return;
     }
 
-    try {
-      const [userRow] = await db
-        .select()
-        .from(usersTable)
-        .where(eq(usersTable.id, Number(updated.sessionId)));
+    if (updated.userId) {
+      try {
+        const [userRow] = await db
+          .select()
+          .from(usersTable)
+          .where(eq(usersTable.id, updated.userId));
 
-      if (userRow?.email) {
-        await sendOrderEmail({
-          to: userRow.email,
-          name: userRow.name,
-          orderStatus: updated.status,
-          trackingCode: updated.trackingCode,
-          total: updated.total,
-          currency: updated.currency,
-          shippingAddress: updated.shippingAddress,
-        });
-        await db.insert(notificationsTable).values({
-          userId: userRow.id,
-          title: `Order ${updated.trackingCode}`,
-          message: `Your order status has been updated to: ${updated.status}.`,
-        });
-      }
-    } catch { /* non-fatal — order update still succeeds */ }
+        if (userRow?.email) {
+          await sendOrderEmail({
+            to: userRow.email,
+            name: userRow.name,
+            orderStatus: updated.status,
+            trackingCode: updated.trackingCode,
+            total: updated.total,
+            currency: updated.currency,
+            shippingAddress: updated.shippingAddress,
+          });
+          await db.insert(notificationsTable).values({
+            userId: userRow.id,
+            title: `Order ${updated.trackingCode}`,
+            message: `Your order status has been updated to: ${updated.status}.`,
+          });
+        }
+      } catch { /* non-fatal */ }
+    }
 
     res.json(serializeOrder(updated));
   },

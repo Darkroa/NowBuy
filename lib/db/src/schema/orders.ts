@@ -11,6 +11,7 @@ export type OrderItemJson = {
 export const ordersTable = pgTable("orders", {
   id: serial("id").primaryKey(),
   sessionId: text("session_id").notNull(),
+  userId: integer("user_id"),
   status: text("status").notNull().default("placed"),
   total: real("total").notNull(),
   currency: text("currency").notNull().default("NGN"),
