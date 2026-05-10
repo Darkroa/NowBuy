@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { useListProducts } from "@workspace/api-client-react";
 
 export function FeaturedCarousel() {
-  const { data: products } = useListProducts({ limit: 8 });
-  const items = products?.products ?? [];
+  const { data: products } = useListProducts();
+  const items = products ?? [];
   const [current, setCurrent] = useState(0);
   const [paused, setPaused] = useState(false);
 
