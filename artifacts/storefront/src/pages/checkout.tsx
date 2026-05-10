@@ -13,7 +13,7 @@ export default function Checkout() {
   const [, setLocation] = useLocation();
   const { data: cart, isLoading } = useGetCart();
   const [shippingAddress, setShippingAddress] = useState(
-    () => sessionStorage.getItem(STORAGE_KEY) ?? "",
+    () => localStorage.getItem(STORAGE_KEY) ?? "",
   );
 
   useEffect(() => {
@@ -24,7 +24,7 @@ export default function Checkout() {
 
   function continueToPayment() {
     if (shippingAddress.trim().length < 3) return;
-    sessionStorage.setItem(STORAGE_KEY, shippingAddress.trim());
+    localStorage.setItem(STORAGE_KEY, shippingAddress.trim());
     setLocation("/payment");
   }
 
