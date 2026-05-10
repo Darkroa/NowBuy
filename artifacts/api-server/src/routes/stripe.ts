@@ -78,7 +78,7 @@ router.post("/stripe/verify", async (req: Request, res: Response) => {
     }
 
     if (user?.id) {
-      try { await sendPlacedEmailAndNotification(placed.order, user.id); } catch { /* non-fatal */ }
+      try { await sendPlacedEmailAndNotification(placed.order, user.id); } catch (err) { req.log.error({ err }, "stripe order email failed"); }
     }
 
     res.status(201).json(serializeOrder(placed.order));

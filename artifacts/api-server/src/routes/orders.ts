@@ -6,6 +6,7 @@ import { serializeOrder } from "../lib/serializers";
 import { generateTrackingCode } from "../lib/tracking";
 import { requireRole, getUserFromCookie } from "../lib/auth";
 import { sendOrderEmail } from "./email";
+import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
@@ -109,7 +110,7 @@ router.post("/orders", async (req: Request, res: Response) => {
     return;
   }
   if (user?.id) {
-    try { await sendPlacedEmailAndNotification(result.order, user.id); } catch { /* non-fatal */ }
+    try { await sendPlacedEmailAndNotification(result.order, user.id); } catch (err) { logger.error({ err }, "order placed email failed"); }
   }
   res.status(201).json(serializeOrder(result.order));
 });
@@ -161,7 +162,7 @@ router.patch(
             message: `Your order status has been updated to: ${updated.status}.`,
           });
         }
-      } catch { /* non-fatal */ }
+      } catch (err) { logger.error({ err }, "order status email failed"); }
     }
 
     res.json(serializeOrder(updated));
