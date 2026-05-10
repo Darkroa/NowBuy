@@ -19,6 +19,7 @@ import PMConsole from "@/pages/pm";
 import ResetPassword from "@/pages/reset-password";
 import Notifications from "@/pages/notifications";
 import Support from "@/pages/support";
+import PaymentCallback from "@/pages/payment-callback";
 
 const queryClient = new QueryClient();
 
@@ -33,6 +34,7 @@ function Router() {
         <Route path="/cart" component={Cart} />
         <Route path="/checkout" component={Checkout} />
         <Route path="/payment" component={Payment} />
+        <Route path="/payment/callback" component={PaymentCallback} />
         <Route path="/orders" component={Orders} />
         <Route path="/orders/:id" component={OrderDetail} />
         <Route path="/account" component={Account} />

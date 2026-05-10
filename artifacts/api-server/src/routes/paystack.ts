@@ -1,9 +1,9 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { db, settingsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
-import { placeOrderForSession } from "./orders";
+import { placeOrderForSession, sendPlacedEmailAndNotification } from "./orders";
 import { serializeOrder } from "../lib/serializers";
-import { requireRole } from "../lib/auth";
+import { requireRole, getUserFromCookie } from "../lib/auth";
 import crypto from "crypto";
 
 const router: IRouter = Router();
@@ -31,10 +31,11 @@ async function paystackGet(path: string) {
 }
 
 router.post("/paystack/initialize", async (req: Request, res: Response) => {
-  const { email, amount, currency } = req.body as {
+  const { email, amount, currency, callbackUrl } = req.body as {
     email: string;
     amount: number;
     currency: string;
+    callbackUrl?: string;
   };
 
   if (!email || !amount) {
@@ -48,6 +49,7 @@ router.post("/paystack/initialize", async (req: Request, res: Response) => {
     email,
     amount: amountInKobo,
     currency: "NGN",
+    callback_url: callbackUrl,
     metadata: { sessionId: req.sessionId },
   });
 
@@ -81,10 +83,15 @@ router.post("/paystack/verify", async (req: Request, res: Response) => {
     return;
   }
 
-  const placed = await placeOrderForSession(req.sessionId, shippingAddress, "user");
+  const user = await getUserFromCookie(req);
+  const placed = await placeOrderForSession(req.sessionId, shippingAddress, "user", user?.id);
   if ("error" in placed) {
     res.status(400).json({ error: placed.error });
     return;
+  }
+
+  if (user?.id) {
+    try { await sendPlacedEmailAndNotification(placed.order, user.id); } catch { /* non-fatal */ }
   }
 
   res.status(201).json(serializeOrder(placed.order));
