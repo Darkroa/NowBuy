@@ -16,12 +16,13 @@ router.patch("/admin/products/:id", requireRole("admin", "pm"), async (req: Requ
   if (!Number.isFinite(id)) { res.status(400).json({ error: "Invalid id" }); return; }
 
   const {
-    name, description, category, price, stock,
-    imageUrl, images, colors, productType, tags,
+    name, description, category, price, originalPrice, stock,
+    imageUrl, images, colors, productType, tags, rating,
   } = req.body as {
     name?: string; description?: string; category?: string;
-    price?: number; stock?: number; imageUrl?: string;
+    price?: number; originalPrice?: number | null; stock?: number; imageUrl?: string;
     images?: string[]; colors?: string[]; productType?: string; tags?: string[];
+    rating?: number;
   };
 
   const [updated] = await db
@@ -31,12 +32,14 @@ router.patch("/admin/products/:id", requireRole("admin", "pm"), async (req: Requ
       ...(description !== undefined && { description }),
       ...(category !== undefined && { category }),
       ...(price !== undefined && { price }),
+      ...(originalPrice !== undefined && { originalPrice: originalPrice ?? null }),
       ...(stock !== undefined && { stock }),
       ...(imageUrl !== undefined && { imageUrl }),
       ...(images !== undefined && { images }),
       ...(colors !== undefined && { colors }),
       ...(productType !== undefined && { productType }),
       ...(tags !== undefined && { tags }),
+      ...(rating !== undefined && { rating }),
     })
     .where(eq(productsTable.id, id))
     .returning();

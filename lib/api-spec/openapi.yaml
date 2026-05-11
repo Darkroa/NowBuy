@@ -16,6 +16,8 @@ tags:
   - name: admin
   - name: Storage
   - name: PasswordReset
+  - name: cashback
+  - name: landingPages
 paths:
   /admin/users/{id}/reset-code:
     post:
@@ -175,6 +177,9 @@ paths:
         - name: q
           in: query
           schema: { type: string }
+        - name: limit
+          in: query
+          schema: { type: integer }
       responses:
         "200":
           description: OK
@@ -432,6 +437,148 @@ paths:
                 items:
                   $ref: "#/components/schemas/Order"
 
+  /admin/sales-summary:
+    get:
+      operationId: getAdminSalesSummary
+      tags: [admin]
+      summary: Sales summary (today, month, total + daily chart data)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalesSummary"
+
+  /admin/cashback:
+    get:
+      operationId: listCashbackCodes
+      tags: [cashback]
+      summary: List all cashback codes (admin only)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CashbackCode"
+    post:
+      operationId: createCashbackCode
+      tags: [cashback]
+      summary: Create a cashback code (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCashbackCodeRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CashbackCode"
+
+  /admin/cashback/{id}:
+    delete:
+      operationId: deleteCashbackCode
+      tags: [cashback]
+      summary: Delete a cashback code (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "204":
+          description: Deleted
+
+  /cashback/validate:
+    post:
+      operationId: validateCashbackCode
+      tags: [cashback]
+      summary: Validate a cashback code and return discount amount
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ValidateCashbackRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidateCashbackResponse"
+
+  /admin/landing-pages:
+    get:
+      operationId: listLandingPages
+      tags: [landingPages]
+      summary: List landing pages (admin only)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LandingPage"
+    post:
+      operationId: createLandingPage
+      tags: [landingPages]
+      summary: Create a landing page (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateLandingPageRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LandingPage"
+
+  /admin/landing-pages/{id}:
+    delete:
+      operationId: deleteLandingPage
+      tags: [landingPages]
+      summary: Delete a landing page (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "204":
+          description: Deleted
+
+  /landing-pages/{slug}:
+    get:
+      operationId: getLandingPage
+      tags: [landingPages]
+      summary: Get a public landing page by slug
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LandingPageWithProducts"
+
   /chat/messages:
     get:
       operationId: listChatMessages
@@ -525,15 +672,25 @@ components:
         description: { type: string }
         category: { type: string }
         price: { type: number }
+        originalPrice:
+          type: number
+          nullable: true
         currency: { type: string }
         imageUrl: { type: string }
+        images:
+          type: array
+          items: { type: string }
+        colors:
+          type: array
+          items: { type: string }
+        productType: { type: string }
         rating: { type: number }
         stock: { type: integer }
         sellerName: { type: string }
         tags:
           type: array
           items: { type: string }
-      required: [id, name, description, category, price, currency, imageUrl, rating, stock, sellerName, tags]
+      required: [id, name, description, category, price, currency, imageUrl, images, colors, productType, rating, stock, sellerName, tags]
 
     ResetCodeResponse:
       type: object
@@ -572,10 +729,14 @@ components:
         description: { type: string, minLength: 1 }
         category: { type: string, minLength: 1 }
         price: { type: number, minimum: 0 }
-        currency: { type: string, default: USD }
+        originalPrice:
+          type: number
+          nullable: true
+        currency: { type: string, default: NGN }
         imageUrl: { type: string, minLength: 1 }
         stock: { type: integer, minimum: 0 }
         sellerName: { type: string, minLength: 1 }
+        rating: { type: number }
         tags:
           type: array
           items: { type: string }
@@ -586,7 +747,7 @@ components:
       properties:
         status:
           type: string
-          enum: [placed, processing, shipped, delivered]
+          enum: [placed, confirmed, dispatched, delivered, cancelled]
       required: [status]
 
     UpdateUserRoleRequest:
@@ -650,11 +811,26 @@ components:
       type: object
       properties:
         id: { type: integer }
-        status: { type: string, enum: [placed, processing, shipped, delivered] }
+        status: { type: string, enum: [placed, confirmed, dispatched, delivered, cancelled] }
         total: { type: number }
         currency: { type: string }
         trackingCode: { type: string }
         shippingAddress: { type: string }
+        receiverName:
+          type: string
+          nullable: true
+        receiverEmail:
+          type: string
+          nullable: true
+        receiverPhone:
+          type: string
+          nullable: true
+        cashbackCode:
+          type: string
+          nullable: true
+        cashbackDiscount:
+          type: number
+          nullable: true
         placedBy: { type: string, enum: [user, ai] }
         createdAt: { type: string }
         items:
@@ -666,10 +842,106 @@ components:
       type: object
       properties:
         shippingAddress: { type: string, minLength: 3 }
+        receiverName: { type: string }
+        receiverEmail: { type: string }
+        receiverPhone: { type: string }
+        cashbackCode: { type: string }
         placedBy:
           type: string
           enum: [user, ai]
       required: [shippingAddress]
+
+    SalesSummary:
+      type: object
+      properties:
+        todayTotal: { type: number }
+        monthTotal: { type: number }
+        allTimeTotal: { type: number }
+        todayOrders: { type: integer }
+        monthOrders: { type: integer }
+        allTimeOrders: { type: integer }
+        dailyChart:
+          type: array
+          items:
+            type: object
+            properties:
+              date: { type: string }
+              total: { type: number }
+              orders: { type: integer }
+            required: [date, total, orders]
+      required: [todayTotal, monthTotal, allTimeTotal, todayOrders, monthOrders, allTimeOrders, dailyChart]
+
+    CashbackCode:
+      type: object
+      properties:
+        id: { type: integer }
+        code: { type: string }
+        amount: { type: number }
+        maxUses: { type: integer }
+        usedCount: { type: integer }
+        isActive: { type: boolean }
+        createdAt: { type: string }
+      required: [id, code, amount, maxUses, usedCount, isActive, createdAt]
+
+    CreateCashbackCodeRequest:
+      type: object
+      properties:
+        code: { type: string, minLength: 3 }
+        amount: { type: number, minimum: 1 }
+        maxUses: { type: integer, minimum: 1 }
+      required: [code, amount, maxUses]
+
+    ValidateCashbackRequest:
+      type: object
+      properties:
+        code: { type: string }
+      required: [code]
+
+    ValidateCashbackResponse:
+      type: object
+      properties:
+        valid: { type: boolean }
+        amount: { type: number }
+        code: { type: string }
+        message: { type: string }
+      required: [valid]
+
+    LandingPage:
+      type: object
+      properties:
+        id: { type: integer }
+        slug: { type: string }
+        title: { type: string }
+        description: { type: string }
+        productIds:
+          type: array
+          items: { type: integer }
+        createdAt: { type: string }
+      required: [id, slug, title, description, productIds, createdAt]
+
+    LandingPageWithProducts:
+      type: object
+      properties:
+        id: { type: integer }
+        slug: { type: string }
+        title: { type: string }
+        description: { type: string }
+        products:
+          type: array
+          items: { $ref: "#/components/schemas/Product" }
+        createdAt: { type: string }
+      required: [id, slug, title, description, products, createdAt]
+
+    CreateLandingPageRequest:
+      type: object
+      properties:
+        slug: { type: string, minLength: 2 }
+        title: { type: string, minLength: 1 }
+        description: { type: string }
+        productIds:
+          type: array
+          items: { type: integer }
+      required: [slug, title, productIds]
 
     ChatMessage:
       type: object

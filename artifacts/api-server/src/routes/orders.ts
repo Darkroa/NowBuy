@@ -1,5 +1,5 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-import { db, ordersTable, cartItemsTable, productsTable, usersTable, notificationsTable } from "@workspace/db";
+import { db, ordersTable, cartItemsTable, productsTable, usersTable, notificationsTable, cashbackCodesTable } from "@workspace/db";
 import { and, eq, desc, inArray } from "drizzle-orm";
 import { PlaceOrderBody, UpdateOrderStatusBody } from "@workspace/api-zod";
 import { serializeOrder } from "../lib/serializers";
@@ -15,6 +15,12 @@ export async function placeOrderForSession(
   shippingAddress: string,
   placedBy: "user" | "ai",
   userId?: number,
+  extras?: {
+    receiverName?: string;
+    receiverEmail?: string;
+    receiverPhone?: string;
+    cashbackCode?: string;
+  },
 ) {
   const items = await db
     .select()
@@ -45,6 +51,21 @@ export async function placeOrderForSession(
   });
   total = Math.round(total * 100) / 100;
 
+  let cashbackDiscount: number | null = null;
+  let validatedCashbackCode: string | null = null;
+
+  if (extras?.cashbackCode) {
+    const [cb] = await db.select().from(cashbackCodesTable)
+      .where(eq(cashbackCodesTable.code, extras.cashbackCode.toUpperCase()));
+    if (cb && cb.isActive && cb.usedCount < cb.maxUses) {
+      cashbackDiscount = cb.amount;
+      validatedCashbackCode = cb.code;
+      total = Math.max(0, Math.round((total - cb.amount) * 100) / 100);
+      await db.update(cashbackCodesTable).set({ usedCount: cb.usedCount + 1 })
+        .where(eq(cashbackCodesTable.id, cb.id));
+    }
+  }
+
   const [order] = await db
     .insert(ordersTable)
     .values({
@@ -55,6 +76,11 @@ export async function placeOrderForSession(
       currency: "NGN",
       trackingCode: generateTrackingCode(),
       shippingAddress,
+      receiverName: extras?.receiverName ?? null,
+      receiverEmail: extras?.receiverEmail ?? null,
+      receiverPhone: extras?.receiverPhone ?? null,
+      cashbackCode: validatedCashbackCode,
+      cashbackDiscount,
       placedBy,
       items: orderItems,
     })
@@ -104,7 +130,18 @@ router.post("/orders", async (req: Request, res: Response) => {
   }
   const user = await getUserFromCookie(req);
   const placedBy = (parsed.data.placedBy as "user" | "ai" | undefined) ?? "user";
-  const result = await placeOrderForSession(req.sessionId, parsed.data.shippingAddress, placedBy, user?.id);
+  const body = req.body as {
+    receiverName?: string;
+    receiverEmail?: string;
+    receiverPhone?: string;
+    cashbackCode?: string;
+  };
+  const result = await placeOrderForSession(req.sessionId, parsed.data.shippingAddress, placedBy, user?.id, {
+    receiverName: body.receiverName,
+    receiverEmail: body.receiverEmail,
+    receiverPhone: body.receiverPhone,
+    cashbackCode: body.cashbackCode,
+  });
   if ("error" in result) {
     res.status(400).json({ error: result.error });
     return;

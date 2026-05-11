@@ -10,6 +10,9 @@ import { BankDetailsManager } from "@/components/bank-details-manager";
 import { AdminProductsManager } from "@/components/admin-products-manager";
 import { PushNotificationForm } from "@/components/push-notification-form";
 import { AdminSupportDesk } from "@/components/admin-support-desk";
+import { AdminCashbackManager } from "@/components/admin-cashback";
+import { AdminLandingPages } from "@/components/admin-landing-pages";
+import { AdminDashboard } from "@/components/admin-dashboard";
 import {
   ShieldCheck,
   Users as UsersIcon,
@@ -20,9 +23,23 @@ import {
   Bell,
   HeadphonesIcon,
   LayoutList,
+  Tag,
+  Globe,
+  BarChart2,
 } from "lucide-react";
 
-type Section = "dashboard" | "users" | "orders" | "catalog" | "bank" | "password" | "products" | "notifications" | "support";
+type Section =
+  | "dashboard"
+  | "users"
+  | "orders"
+  | "catalog"
+  | "bank"
+  | "password"
+  | "products"
+  | "notifications"
+  | "support"
+  | "cashback"
+  | "landing-pages";
 
 export default function Admin({ section = "dashboard" }: { section?: Section }) {
   const [, setLocation] = useLocation();
@@ -44,8 +61,9 @@ export default function Admin({ section = "dashboard" }: { section?: Section }) 
           <StaffPageHeader
             icon={ShieldCheck}
             title="Admin console"
-            description={`Welcome back, ${me.name}. Use the menu to manage users, orders, and the catalog.`}
+            description={`Welcome back, ${me.name}. Here's your store overview.`}
           />
+          <AdminDashboard />
           <div className="grid gap-8 lg:grid-cols-2">
             <UsersManager currentUserId={me.id} />
             <ProductForm sellerName={me.name} />
@@ -77,14 +95,14 @@ export default function Admin({ section = "dashboard" }: { section?: Section }) 
 
       {section === "products" && (
         <>
-          <StaffPageHeader icon={LayoutList} title="Manage products" description="Edit details, images, colors and pricing for any product in the catalog." />
+          <StaffPageHeader icon={LayoutList} title="Manage products" description="Edit details, images, colors, pricing and rating for any product." />
           <AdminProductsManager />
         </>
       )}
 
       {section === "bank" && (
         <>
-          <StaffPageHeader icon={Landmark} title="Bank details" description="Set the bank account shown to customers who pay by manual bank transfer." />
+          <StaffPageHeader icon={Landmark} title="Bank details" description="Set the bank account and logo shown to customers who pay by bank transfer." />
           <BankDetailsManager />
         </>
       )}
@@ -109,6 +127,20 @@ export default function Admin({ section = "dashboard" }: { section?: Section }) 
         <>
           <StaffPageHeader icon={HeadphonesIcon} title="Support desk" description="View and reply to customer support tickets. Replies are sent via email." />
           <AdminSupportDesk />
+        </>
+      )}
+
+      {section === "cashback" && (
+        <>
+          <StaffPageHeader icon={Tag} title="Cashback codes" description="Create discount codes that customers can apply at checkout." />
+          <AdminCashbackManager />
+        </>
+      )}
+
+      {section === "landing-pages" && (
+        <>
+          <StaffPageHeader icon={Globe} title="Landing pages" description="Create shareable collection pages with selected products." />
+          <AdminLandingPages />
         </>
       )}
     </div>

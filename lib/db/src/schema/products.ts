@@ -6,6 +6,7 @@ export const productsTable = pgTable("products", {
   description: text("description").notNull(),
   category: text("category").notNull(),
   price: real("price").notNull(),
+  originalPrice: real("original_price"),
   currency: text("currency").notNull().default("NGN"),
   imageUrl: text("image_url").notNull(),
   images: jsonb("images").$type<string[]>().notNull().default([]),

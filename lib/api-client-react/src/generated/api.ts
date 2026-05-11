@@ -20,18 +20,24 @@ import type {
   AddCartItemRequest,
   AuthUser,
   Cart,
+  CashbackCode,
   Category,
   ChatMessage,
   ChatTurnResponse,
+  CreateCashbackCodeRequest,
+  CreateLandingPageRequest,
   CreateProductRequest,
   CurrentUserResponse,
   HealthStatus,
+  LandingPage,
+  LandingPageWithProducts,
   ListProductsParams,
   Order,
   PlaceOrderRequest,
   Product,
   RedeemResetCodeRequest,
   ResetCodeResponse,
+  SalesSummary,
   SendChatMessageRequest,
   SignInRequest,
   SignUpRequest,
@@ -40,6 +46,8 @@ import type {
   UpdateUserRoleRequest,
   UploadUrlRequest,
   UploadUrlResponse,
+  ValidateCashbackRequest,
+  ValidateCashbackResponse,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -2166,6 +2174,746 @@ export function useListAllOrders<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getListAllOrdersQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Sales summary (today, month, total + daily chart data)
+ */
+export const getGetAdminSalesSummaryUrl = () => {
+  return `/api/admin/sales-summary`;
+};
+
+export const getAdminSalesSummary = async (
+  options?: RequestInit,
+): Promise<SalesSummary> => {
+  return customFetch<SalesSummary>(getGetAdminSalesSummaryUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetAdminSalesSummaryQueryKey = () => {
+  return [`/api/admin/sales-summary`] as const;
+};
+
+export const getGetAdminSalesSummaryQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAdminSalesSummary>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getAdminSalesSummary>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetAdminSalesSummaryQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getAdminSalesSummary>>
+  > = ({ signal }) => getAdminSalesSummary({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getAdminSalesSummary>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetAdminSalesSummaryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getAdminSalesSummary>>
+>;
+export type GetAdminSalesSummaryQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Sales summary (today, month, total + daily chart data)
+ */
+
+export function useGetAdminSalesSummary<
+  TData = Awaited<ReturnType<typeof getAdminSalesSummary>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getAdminSalesSummary>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAdminSalesSummaryQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List all cashback codes (admin only)
+ */
+export const getListCashbackCodesUrl = () => {
+  return `/api/admin/cashback`;
+};
+
+export const listCashbackCodes = async (
+  options?: RequestInit,
+): Promise<CashbackCode[]> => {
+  return customFetch<CashbackCode[]>(getListCashbackCodesUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListCashbackCodesQueryKey = () => {
+  return [`/api/admin/cashback`] as const;
+};
+
+export const getListCashbackCodesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listCashbackCodes>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listCashbackCodes>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListCashbackCodesQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listCashbackCodes>>
+  > = ({ signal }) => listCashbackCodes({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listCashbackCodes>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListCashbackCodesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listCashbackCodes>>
+>;
+export type ListCashbackCodesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List all cashback codes (admin only)
+ */
+
+export function useListCashbackCodes<
+  TData = Awaited<ReturnType<typeof listCashbackCodes>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listCashbackCodes>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListCashbackCodesQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a cashback code (admin only)
+ */
+export const getCreateCashbackCodeUrl = () => {
+  return `/api/admin/cashback`;
+};
+
+export const createCashbackCode = async (
+  createCashbackCodeRequest: CreateCashbackCodeRequest,
+  options?: RequestInit,
+): Promise<CashbackCode> => {
+  return customFetch<CashbackCode>(getCreateCashbackCodeUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createCashbackCodeRequest),
+  });
+};
+
+export const getCreateCashbackCodeMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createCashbackCode>>,
+    TError,
+    { data: BodyType<CreateCashbackCodeRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createCashbackCode>>,
+  TError,
+  { data: BodyType<CreateCashbackCodeRequest> },
+  TContext
+> => {
+  const mutationKey = ["createCashbackCode"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createCashbackCode>>,
+    { data: BodyType<CreateCashbackCodeRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createCashbackCode(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateCashbackCodeMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createCashbackCode>>
+>;
+export type CreateCashbackCodeMutationBody =
+  BodyType<CreateCashbackCodeRequest>;
+export type CreateCashbackCodeMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create a cashback code (admin only)
+ */
+export const useCreateCashbackCode = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createCashbackCode>>,
+    TError,
+    { data: BodyType<CreateCashbackCodeRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createCashbackCode>>,
+  TError,
+  { data: BodyType<CreateCashbackCodeRequest> },
+  TContext
+> => {
+  return useMutation(getCreateCashbackCodeMutationOptions(options));
+};
+
+/**
+ * @summary Delete a cashback code (admin only)
+ */
+export const getDeleteCashbackCodeUrl = (id: number) => {
+  return `/api/admin/cashback/${id}`;
+};
+
+export const deleteCashbackCode = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteCashbackCodeUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteCashbackCodeMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteCashbackCode>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteCashbackCode>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteCashbackCode"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteCashbackCode>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteCashbackCode(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteCashbackCodeMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteCashbackCode>>
+>;
+
+export type DeleteCashbackCodeMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete a cashback code (admin only)
+ */
+export const useDeleteCashbackCode = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteCashbackCode>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteCashbackCode>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteCashbackCodeMutationOptions(options));
+};
+
+/**
+ * @summary Validate a cashback code and return discount amount
+ */
+export const getValidateCashbackCodeUrl = () => {
+  return `/api/cashback/validate`;
+};
+
+export const validateCashbackCode = async (
+  validateCashbackRequest: ValidateCashbackRequest,
+  options?: RequestInit,
+): Promise<ValidateCashbackResponse> => {
+  return customFetch<ValidateCashbackResponse>(getValidateCashbackCodeUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(validateCashbackRequest),
+  });
+};
+
+export const getValidateCashbackCodeMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof validateCashbackCode>>,
+    TError,
+    { data: BodyType<ValidateCashbackRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof validateCashbackCode>>,
+  TError,
+  { data: BodyType<ValidateCashbackRequest> },
+  TContext
+> => {
+  const mutationKey = ["validateCashbackCode"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof validateCashbackCode>>,
+    { data: BodyType<ValidateCashbackRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return validateCashbackCode(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ValidateCashbackCodeMutationResult = NonNullable<
+  Awaited<ReturnType<typeof validateCashbackCode>>
+>;
+export type ValidateCashbackCodeMutationBody =
+  BodyType<ValidateCashbackRequest>;
+export type ValidateCashbackCodeMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Validate a cashback code and return discount amount
+ */
+export const useValidateCashbackCode = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof validateCashbackCode>>,
+    TError,
+    { data: BodyType<ValidateCashbackRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof validateCashbackCode>>,
+  TError,
+  { data: BodyType<ValidateCashbackRequest> },
+  TContext
+> => {
+  return useMutation(getValidateCashbackCodeMutationOptions(options));
+};
+
+/**
+ * @summary List landing pages (admin only)
+ */
+export const getListLandingPagesUrl = () => {
+  return `/api/admin/landing-pages`;
+};
+
+export const listLandingPages = async (
+  options?: RequestInit,
+): Promise<LandingPage[]> => {
+  return customFetch<LandingPage[]>(getListLandingPagesUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListLandingPagesQueryKey = () => {
+  return [`/api/admin/landing-pages`] as const;
+};
+
+export const getListLandingPagesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listLandingPages>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listLandingPages>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListLandingPagesQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listLandingPages>>
+  > = ({ signal }) => listLandingPages({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listLandingPages>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListLandingPagesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listLandingPages>>
+>;
+export type ListLandingPagesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List landing pages (admin only)
+ */
+
+export function useListLandingPages<
+  TData = Awaited<ReturnType<typeof listLandingPages>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listLandingPages>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListLandingPagesQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a landing page (admin only)
+ */
+export const getCreateLandingPageUrl = () => {
+  return `/api/admin/landing-pages`;
+};
+
+export const createLandingPage = async (
+  createLandingPageRequest: CreateLandingPageRequest,
+  options?: RequestInit,
+): Promise<LandingPage> => {
+  return customFetch<LandingPage>(getCreateLandingPageUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createLandingPageRequest),
+  });
+};
+
+export const getCreateLandingPageMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createLandingPage>>,
+    TError,
+    { data: BodyType<CreateLandingPageRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createLandingPage>>,
+  TError,
+  { data: BodyType<CreateLandingPageRequest> },
+  TContext
+> => {
+  const mutationKey = ["createLandingPage"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createLandingPage>>,
+    { data: BodyType<CreateLandingPageRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createLandingPage(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateLandingPageMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createLandingPage>>
+>;
+export type CreateLandingPageMutationBody = BodyType<CreateLandingPageRequest>;
+export type CreateLandingPageMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create a landing page (admin only)
+ */
+export const useCreateLandingPage = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createLandingPage>>,
+    TError,
+    { data: BodyType<CreateLandingPageRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createLandingPage>>,
+  TError,
+  { data: BodyType<CreateLandingPageRequest> },
+  TContext
+> => {
+  return useMutation(getCreateLandingPageMutationOptions(options));
+};
+
+/**
+ * @summary Delete a landing page (admin only)
+ */
+export const getDeleteLandingPageUrl = (id: number) => {
+  return `/api/admin/landing-pages/${id}`;
+};
+
+export const deleteLandingPage = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteLandingPageUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteLandingPageMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteLandingPage>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteLandingPage>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteLandingPage"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteLandingPage>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteLandingPage(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteLandingPageMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteLandingPage>>
+>;
+
+export type DeleteLandingPageMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete a landing page (admin only)
+ */
+export const useDeleteLandingPage = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteLandingPage>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteLandingPage>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteLandingPageMutationOptions(options));
+};
+
+/**
+ * @summary Get a public landing page by slug
+ */
+export const getGetLandingPageUrl = (slug: string) => {
+  return `/api/landing-pages/${slug}`;
+};
+
+export const getLandingPage = async (
+  slug: string,
+  options?: RequestInit,
+): Promise<LandingPageWithProducts> => {
+  return customFetch<LandingPageWithProducts>(getGetLandingPageUrl(slug), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetLandingPageQueryKey = (slug: string) => {
+  return [`/api/landing-pages/${slug}`] as const;
+};
+
+export const getGetLandingPageQueryOptions = <
+  TData = Awaited<ReturnType<typeof getLandingPage>>,
+  TError = ErrorType<unknown>,
+>(
+  slug: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getLandingPage>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetLandingPageQueryKey(slug);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getLandingPage>>> = ({
+    signal,
+  }) => getLandingPage(slug, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!slug,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getLandingPage>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetLandingPageQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getLandingPage>>
+>;
+export type GetLandingPageQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get a public landing page by slug
+ */
+
+export function useGetLandingPage<
+  TData = Awaited<ReturnType<typeof getLandingPage>>,
+  TError = ErrorType<unknown>,
+>(
+  slug: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getLandingPage>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetLandingPageQueryOptions(slug, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

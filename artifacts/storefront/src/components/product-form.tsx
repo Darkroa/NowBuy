@@ -27,6 +27,8 @@ export function ProductForm({ sellerName }: { sellerName: string }) {
   const [category, setCategory] = useState("");
   const [customCategory, setCustomCategory] = useState("");
   const [price, setPrice] = useState("");
+  const [originalPrice, setOriginalPrice] = useState("");
+  const [rating, setRating] = useState("4.5");
   const [stock, setStock] = useState("25");
   const [imageUrl, setImageUrl] = useState("");
   const [extraImages, setExtraImages] = useState<string[]>([]);
@@ -77,8 +79,13 @@ export function ProductForm({ sellerName }: { sellerName: string }) {
     if (!finalCategory) { setError("Please choose or type a category."); return; }
     if (!imageUrl) { setError("Please upload a product image."); return; }
     const priceNum = Number(price);
+    const originalPriceNum = originalPrice ? Number(originalPrice) : null;
+    const ratingNum = Number(rating);
     const stockNum = Number(stock);
     if (!Number.isFinite(priceNum) || priceNum < 0) { setError("Price must be a positive number."); return; }
+    if (originalPriceNum !== null && (!Number.isFinite(originalPriceNum) || originalPriceNum <= priceNum)) {
+      setError("Original (slash) price must be greater than the sale price."); return;
+    }
     if (!Number.isFinite(stockNum) || stockNum < 0) { setError("Stock must be a non-negative integer."); return; }
     setSubmitting(true);
     try {
@@ -93,20 +100,21 @@ export function ProductForm({ sellerName }: { sellerName: string }) {
         sellerName,
         tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
       });
-      if (extraImages.length > 0 || colors || productType) {
-        await fetch(`/api/admin/products/${created.id}`, {
-          method: "PATCH", credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            images: extraImages,
-            colors: colors.split(",").map(c => c.trim()).filter(Boolean),
-            productType: productType.trim(),
-          }),
-        });
-      }
+      // send extras via patch
+      await fetch(`/api/admin/products/${created.id}`, {
+        method: "PATCH", credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          images: extraImages,
+          colors: colors.split(",").map(c => c.trim()).filter(Boolean),
+          productType: productType.trim(),
+          rating: ratingNum,
+          originalPrice: originalPriceNum,
+        }),
+      });
       setSuccess(`Published "${created.name}".`);
-      setName(""); setDescription(""); setPrice(""); setImageUrl("");
-      setExtraImages([]); setColors(""); setProductType(""); setTags("");
+      setName(""); setDescription(""); setPrice(""); setOriginalPrice(""); setRating("4.5");
+      setImageUrl(""); setExtraImages([]); setColors(""); setProductType(""); setTags("");
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: getListProductsQueryKey() }),
         queryClient.invalidateQueries({ queryKey: getListCategoriesQueryKey() }),
@@ -138,18 +146,6 @@ export function ProductForm({ sellerName }: { sellerName: string }) {
           <Input id="p-name" required value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Cloud Runner Sneakers" />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="p-price">Price (₦ NGN)</Label>
-          <Input id="p-price" type="number" min="0" step="0.01" required value={price} onChange={(e) => setPrice(e.target.value)} placeholder="49.99" />
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="p-desc">Description</Label>
-        <Textarea id="p-desc" required rows={3} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What it is, who it's for, what makes it great." />
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-2">
           <Label htmlFor="p-cat">Category</Label>
           <select
             id="p-cat" required value={category} onChange={(e) => setCategory(e.target.value)}
@@ -165,16 +161,36 @@ export function ProductForm({ sellerName }: { sellerName: string }) {
             <Input required value={customCategory} onChange={(e) => setCustomCategory(e.target.value)} placeholder="e.g. wellness" />
           )}
         </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="p-desc">Description</Label>
+        <Textarea id="p-desc" required rows={3} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What it is, who it's for, what makes it great." />
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="space-y-2">
+          <Label htmlFor="p-price">Sale price (₦)</Label>
+          <Input id="p-price" type="number" min="0" step="0.01" required value={price} onChange={(e) => setPrice(e.target.value)} placeholder="49900" />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="p-original">Original price (₦) <span className="text-muted-foreground font-normal text-xs">slash price</span></Label>
+          <Input id="p-original" type="number" min="0" step="0.01" value={originalPrice} onChange={(e) => setOriginalPrice(e.target.value)} placeholder="69900 (optional)" />
+        </div>
         <div className="space-y-2">
           <Label htmlFor="p-stock">Stock</Label>
           <Input id="p-stock" type="number" min="0" step="1" required value={stock} onChange={(e) => setStock(e.target.value)} />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="p-rating">Rating (1–5)</Label>
+          <Input id="p-rating" type="number" min="1" max="5" step="0.1" value={rating} onChange={(e) => setRating(e.target.value)} />
         </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="p-type">Product type <span className="text-muted-foreground font-normal">(optional)</span></Label>
-          <Input id="p-type" value={productType} onChange={(e) => setProductType(e.target.value)} placeholder="e.g. Sneakers, T-Shirt, Laptop" />
+          <Input id="p-type" value={productType} onChange={(e) => setProductType(e.target.value)} placeholder="e.g. Sneakers, T-Shirt" />
         </div>
         <div className="space-y-2">
           <Label htmlFor="p-colors">Colors <span className="text-muted-foreground font-normal">(comma separated)</span></Label>

@@ -14,6 +14,8 @@ import stripeRouter from "./stripe";
 import notificationsRouter from "./notifications";
 import supportRouter from "./support";
 import emailRouter from "./email";
+import cashbackRouter from "./cashback";
+import landingPagesRouter from "./landing-pages";
 
 const router: IRouter = Router();
 
@@ -32,5 +34,7 @@ router.use(stripeRouter);
 router.use(notificationsRouter);
 router.use(supportRouter);
 router.use(emailRouter);
+router.use(cashbackRouter);
+router.use(landingPagesRouter);
 
 export default router;

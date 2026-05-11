@@ -21,10 +21,13 @@ import {
   Sparkles,
   Loader2,
   ExternalLink,
+  AlertTriangle,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const STORAGE_KEY = "nb_checkout_address";
+const CONTACT_KEY = "nb_checkout_contact";
+const CASHBACK_KEY = "nb_checkout_cashback";
 
 type Method = "paystack" | "stripe" | "transfer" | "delivery";
 
@@ -35,7 +38,9 @@ const METHODS: { id: Method; label: string; icon: React.ReactNode; hint: string 
   { id: "delivery", label: "Pay on delivery", icon: <Wallet className="h-4 w-4" />, hint: "Cash or card when your order arrives" },
 ];
 
-type BankDetails = { bankName: string; accountName: string; accountNumber: string };
+type BankDetails = { bankName: string; accountName: string; accountNumber: string; bankLogo?: string };
+type Contact = { name: string; email: string; phone: string };
+type CashbackState = { code: string; amount: number } | null;
 
 export default function Payment() {
   const [, setLocation] = useLocation();
@@ -54,6 +59,16 @@ export default function Payment() {
 
   const address =
     typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEY) ?? "" : "";
+
+  const contact: Contact = (() => {
+    try { return JSON.parse(localStorage.getItem(CONTACT_KEY) ?? "null") ?? { name: "", email: "", phone: "" }; }
+    catch { return { name: "", email: "", phone: "" }; }
+  })();
+
+  const cashback: CashbackState = (() => {
+    try { return JSON.parse(localStorage.getItem(CASHBACK_KEY) ?? "null"); }
+    catch { return null; }
+  })();
 
   useEffect(() => {
     if (!address) setLocation("/checkout");
@@ -74,6 +89,7 @@ export default function Payment() {
     mutation: {
       onSuccess: (order) => {
         localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(CASHBACK_KEY);
         queryClient.invalidateQueries({ queryKey: getGetCartQueryKey() });
         queryClient.invalidateQueries({ queryKey: getListOrdersQueryKey() });
         toast({ title: "Order placed!", description: "Your order is on the way." });
@@ -94,7 +110,16 @@ export default function Payment() {
   );
 
   function confirmDeliveryOrTransfer() {
-    placeOrder.mutate({ data: { shippingAddress: address, placedBy: "user" } });
+    placeOrder.mutate({
+      data: {
+        shippingAddress: address,
+        placedBy: "user",
+        receiverName: contact.name || undefined,
+        receiverEmail: contact.email || undefined,
+        receiverPhone: contact.phone || undefined,
+        cashbackCode: cashback?.code || undefined,
+      } as Parameters<typeof placeOrder.mutate>[0]["data"],
+    });
   }
 
   function copyToClipboard(text: string, label: string) {
@@ -110,7 +135,7 @@ export default function Payment() {
   async function openPaystackCheckout() {
     if (!cart) return;
     setProviderLoading(true);
-    const email = authData?.user?.email ?? "guest@nowbuy.app";
+    const email = authData?.user?.email ?? contact.email ?? "guest@nowbuy.app";
 
     try {
       const res = await fetch("/api/paystack/initialize", {
@@ -142,7 +167,7 @@ export default function Payment() {
   async function openStripeCheckout() {
     if (!cart) return;
     setProviderLoading(true);
-    const email = authData?.user?.email ?? "guest@nowbuy.app";
+    const email = authData?.user?.email ?? contact.email ?? "guest@nowbuy.app";
 
     try {
       const res = await fetch("/api/stripe/initialize", {
@@ -176,7 +201,14 @@ export default function Payment() {
       const verifyRes = await fetch("/api/paystack/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reference: paystackRef, shippingAddress: address }),
+        body: JSON.stringify({
+          reference: paystackRef, shippingAddress: address,
+          receiverName: contact.name || undefined,
+          receiverEmail: contact.email || undefined,
+          receiverPhone: contact.phone || undefined,
+          cashbackCode: cashback?.code || undefined,
+          cashbackDiscount: cashback?.amount || undefined,
+        }),
       });
       const order = await verifyRes.json() as { id?: number; error?: string };
       if (!verifyRes.ok || order.error) {
@@ -184,6 +216,7 @@ export default function Payment() {
         return;
       }
       localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(CASHBACK_KEY);
       queryClient.invalidateQueries({ queryKey: getGetCartQueryKey() });
       queryClient.invalidateQueries({ queryKey: getListOrdersQueryKey() });
       toast({ title: "Payment confirmed!", description: "Your order is on the way." });
@@ -201,6 +234,10 @@ export default function Payment() {
       </div>
     );
   }
+
+  const discountedSubtotal = cashback
+    ? Math.max(0, cart.subtotal - cashback.amount)
+    : cart.subtotal;
 
   return (
     <div className="container max-w-screen-lg mx-auto py-12 px-6">
@@ -250,8 +287,8 @@ export default function Payment() {
           {method === "paystack" && !paystackRef && (
             <ProviderCard
               title="Pay securely with Paystack"
-              description={<>Opens Paystack's checkout in a new tab. Pay <strong className="text-foreground">{fmt(cart.subtotal)}</strong> via card, bank transfer, USSD, or mobile money.</>}
-              buttonLabel={`Pay ${fmt(cart.subtotal)} with Paystack`}
+              description={<>Opens Paystack's checkout in a new tab. Pay <strong className="text-foreground">{fmt(discountedSubtotal)}</strong> via card, bank transfer, USSD, or mobile money.</>}
+              buttonLabel={`Pay ${fmt(discountedSubtotal)} with Paystack`}
               loading={providerLoading}
               onClick={openPaystackCheckout}
             />
@@ -282,8 +319,8 @@ export default function Payment() {
           {method === "stripe" && (
             <ProviderCard
               title="Pay securely with Stripe"
-              description={<>Opens Stripe's checkout in a new tab. Pay <strong className="text-foreground">{fmt(cart.subtotal)}</strong> via Visa, Mastercard, or other cards. After payment, you'll be redirected back automatically.</>}
-              buttonLabel={`Pay ${fmt(cart.subtotal)} with Stripe`}
+              description={<>Opens Stripe's checkout in a new tab. Pay <strong className="text-foreground">{fmt(discountedSubtotal)}</strong> via Visa, Mastercard, or other cards. After payment, you'll be redirected back automatically.</>}
+              buttonLabel={`Pay ${fmt(discountedSubtotal)} with Stripe`}
               loading={providerLoading}
               onClick={openStripeCheckout}
             />
@@ -291,6 +328,16 @@ export default function Payment() {
 
           {method === "transfer" && (
             <Card className="p-6 border-border/50 shadow-sm bg-primary/5 border-primary/20">
+              {/* Bank logo */}
+              {bankDetails?.bankLogo && (
+                <div className="flex justify-center mb-4">
+                  <img
+                    src={bankDetails.bankLogo}
+                    alt={bankDetails.bankName}
+                    className="h-16 w-16 rounded-full object-cover border-2 border-border/40 shadow-sm"
+                  />
+                </div>
+              )}
               <h3 className="font-semibold mb-4 flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-primary" /> Bank transfer details
               </h3>
@@ -299,15 +346,20 @@ export default function Payment() {
                   <PayRow label="Bank" value={bankDetails.bankName} onCopy={copyToClipboard} />
                   <PayRow label="Account name" value={bankDetails.accountName} onCopy={copyToClipboard} />
                   <PayRow label="Account number" value={bankDetails.accountNumber} onCopy={copyToClipboard} />
-                  <PayRow label="Amount" value={fmt(cart.subtotal)} onCopy={copyToClipboard} />
+                  <PayRow label="Amount" value={fmt(discountedSubtotal)} onCopy={copyToClipboard} />
                   <PayRow label="Reference" value={reference} onCopy={copyToClipboard} highlight />
                 </dl>
               ) : (
                 <p className="text-sm text-muted-foreground">Bank details not yet configured. Please contact the store.</p>
               )}
-              <p className="text-xs text-muted-foreground mt-4">
-                Include the reference so we can match your transfer to this order.
-              </p>
+              {/* Caution note */}
+              <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 flex gap-3 items-start">
+                <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                <div className="text-xs text-amber-800 leading-relaxed">
+                  <span className="font-semibold block mb-0.5">Always include your reference number</span>
+                  Include <strong>{reference}</strong> in the transfer description so we can match your payment to this order. Transfers without a reference may cause delays.
+                </div>
+              </div>
             </Card>
           )}
 
@@ -315,7 +367,7 @@ export default function Payment() {
             <Card className="p-6 border-border/50 shadow-sm">
               <p className="text-sm text-muted-foreground">
                 Our courier will collect payment on delivery. You'll be charged{" "}
-                <span className="font-semibold text-foreground">{fmt(cart.subtotal)}</span>{" "}
+                <span className="font-semibold text-foreground">{fmt(discountedSubtotal)}</span>{" "}
                 when your order arrives. Click below to confirm your order.
               </p>
             </Card>
@@ -332,8 +384,8 @@ export default function Payment() {
               {placeOrder.isPending
                 ? "Placing order…"
                 : method === "transfer"
-                ? `I've paid · ${fmt(cart.subtotal)}`
-                : `Confirm order · ${fmt(cart.subtotal)}`}
+                ? `I've paid · ${fmt(discountedSubtotal)}`
+                : `Confirm order · ${fmt(discountedSubtotal)}`}
             </Button>
           )}
         </div>
@@ -363,15 +415,28 @@ export default function Payment() {
               <span>Subtotal</span>
               <span>{fmt(cart.subtotal)}</span>
             </div>
+            {cashback && (
+              <div className="flex justify-between text-sm text-primary font-medium">
+                <span>Cashback ({cashback.code})</span>
+                <span>-{fmt(cashback.amount)}</span>
+              </div>
+            )}
             <div className="flex justify-between text-sm text-muted-foreground">
               <span>Shipping</span>
               <span>Free</span>
             </div>
             <div className="flex justify-between font-bold text-lg pt-2 border-t border-border/30">
               <span>Total</span>
-              <span>{fmt(cart.subtotal)}</span>
+              <span>{fmt(discountedSubtotal)}</span>
             </div>
           </div>
+          {contact.name && (
+            <div className="mt-4 pt-4 border-t border-border/50">
+              <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Receiver</p>
+              <p className="text-sm font-medium">{contact.name}</p>
+              {contact.phone && <p className="text-xs text-muted-foreground">{contact.phone}</p>}
+            </div>
+          )}
           <div className="mt-4 pt-4 border-t border-border/50">
             <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Shipping to</p>
             <p className="text-sm whitespace-pre-line">{address}</p>
