@@ -54,8 +54,12 @@ export interface Product {
   description: string;
   category: string;
   price: number;
+  originalPrice?: number | null;
   currency: string;
   imageUrl: string;
+  images: string[];
+  colors: string[];
+  productType: string;
   rating: number;
   stock: number;
   sellerName: string;
@@ -108,6 +112,7 @@ export interface CreateProductRequest {
   category: string;
   /** @minimum 0 */
   price: number;
+  originalPrice?: number | null;
   currency?: string;
   /** @minLength 1 */
   imageUrl: string;
@@ -115,6 +120,7 @@ export interface CreateProductRequest {
   stock: number;
   /** @minLength 1 */
   sellerName: string;
+  rating?: number;
   tags?: string[];
 }
 
@@ -123,9 +129,10 @@ export type UpdateOrderStatusRequestStatus =
 
 export const UpdateOrderStatusRequestStatus = {
   placed: "placed",
-  processing: "processing",
-  shipped: "shipped",
+  confirmed: "confirmed",
+  dispatched: "dispatched",
   delivered: "delivered",
+  cancelled: "cancelled",
 } as const;
 
 export interface UpdateOrderStatusRequest {
@@ -181,9 +188,10 @@ export type OrderStatus = (typeof OrderStatus)[keyof typeof OrderStatus];
 
 export const OrderStatus = {
   placed: "placed",
-  processing: "processing",
-  shipped: "shipped",
+  confirmed: "confirmed",
+  dispatched: "dispatched",
   delivered: "delivered",
+  cancelled: "cancelled",
 } as const;
 
 export type OrderPlacedBy = (typeof OrderPlacedBy)[keyof typeof OrderPlacedBy];
@@ -200,6 +208,11 @@ export interface Order {
   currency: string;
   trackingCode: string;
   shippingAddress: string;
+  receiverName?: string | null;
+  receiverEmail?: string | null;
+  receiverPhone?: string | null;
+  cashbackCode?: string | null;
+  cashbackDiscount?: number | null;
   placedBy: OrderPlacedBy;
   createdAt: string;
   items: OrderItem[];
@@ -216,7 +229,84 @@ export const PlaceOrderRequestPlacedBy = {
 export interface PlaceOrderRequest {
   /** @minLength 3 */
   shippingAddress: string;
+  receiverName?: string;
+  receiverEmail?: string;
+  receiverPhone?: string;
+  cashbackCode?: string;
   placedBy?: PlaceOrderRequestPlacedBy;
+}
+
+export type SalesSummaryDailyChartItem = {
+  date: string;
+  total: number;
+  orders: number;
+};
+
+export interface SalesSummary {
+  todayTotal: number;
+  monthTotal: number;
+  allTimeTotal: number;
+  todayOrders: number;
+  monthOrders: number;
+  allTimeOrders: number;
+  dailyChart: SalesSummaryDailyChartItem[];
+}
+
+export interface CashbackCode {
+  id: number;
+  code: string;
+  amount: number;
+  maxUses: number;
+  usedCount: number;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface CreateCashbackCodeRequest {
+  /** @minLength 3 */
+  code: string;
+  /** @minimum 1 */
+  amount: number;
+  /** @minimum 1 */
+  maxUses: number;
+}
+
+export interface ValidateCashbackRequest {
+  code: string;
+}
+
+export interface ValidateCashbackResponse {
+  valid: boolean;
+  amount?: number;
+  code?: string;
+  message?: string;
+}
+
+export interface LandingPage {
+  id: number;
+  slug: string;
+  title: string;
+  description: string;
+  productIds: number[];
+  createdAt: string;
+}
+
+export interface LandingPageWithProducts {
+  id: number;
+  slug: string;
+  title: string;
+  description: string;
+  products: Product[];
+  createdAt: string;
+}
+
+export interface CreateLandingPageRequest {
+  /** @minLength 2 */
+  slug: string;
+  /** @minLength 1 */
+  title: string;
+  description?: string;
+  productIds: number[];
 }
 
 export type ChatMessageRole =
@@ -257,4 +347,5 @@ export interface ChatTurnResponse {
 export type ListProductsParams = {
   category?: string;
   q?: string;
+  limit?: number;
 };

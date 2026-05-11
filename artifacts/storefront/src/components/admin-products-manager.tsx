@@ -11,7 +11,7 @@ import { useImageUpload } from "@/hooks/use-image-upload";
 
 type Product = {
   id: number; name: string; description: string; category: string;
-  price: number; currency: string; imageUrl: string; images: string[];
+  price: number; originalPrice: number | null; currency: string; imageUrl: string; images: string[];
   colors: string[]; productType: string; stock: number;
   sellerName: string; tags: string[]; rating: number;
 };
@@ -34,7 +34,7 @@ export function AdminProductsManager() {
   }, []);
 
   function startEdit(p: Product) {
-    setEditing({ ...p, images: p.images ?? [], colors: p.colors ?? [], tags: p.tags ?? [] });
+    setEditing({ ...p, images: p.images ?? [], colors: p.colors ?? [], tags: p.tags ?? [], originalPrice: p.originalPrice ?? null });
   }
 
   async function handleMainImage(e: React.ChangeEvent<HTMLInputElement>) {
@@ -63,6 +63,10 @@ export function AdminProductsManager() {
 
   async function handleSave() {
     if (!editing) return;
+    if (editing.originalPrice !== null && editing.originalPrice <= editing.price) {
+      toast({ title: "Original price must be greater than the sale price.", variant: "destructive" });
+      return;
+    }
     setSaving(true);
     try {
       const res = await fetch(`/api/admin/products/${editing.id}`, {
@@ -71,9 +75,11 @@ export function AdminProductsManager() {
         body: JSON.stringify({
           name: editing.name, description: editing.description,
           category: editing.category, price: editing.price,
+          originalPrice: editing.originalPrice,
           stock: editing.stock, imageUrl: editing.imageUrl,
           images: editing.images, colors: editing.colors,
           productType: editing.productType, tags: editing.tags,
+          rating: editing.rating,
         }),
       });
       const updated = await res.json() as Product;
@@ -96,7 +102,7 @@ export function AdminProductsManager() {
     finally { setDeleting(null); }
   }
 
-  const fmt = (n: number) => new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN" }).format(n);
+  const fmt = (n: number) => new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", maximumFractionDigits: 0 }).format(n);
 
   if (loading) return <div className="text-sm text-muted-foreground py-6 text-center">Loading products…</div>;
 
@@ -115,8 +121,32 @@ export function AdminProductsManager() {
               <Input value={editing.name} onChange={e => setEditing(p => p ? { ...p, name: e.target.value } : p)} />
             </div>
             <div className="space-y-1.5">
-              <Label>Price (₦)</Label>
+              <Label>Category</Label>
+              <Input value={editing.category} onChange={e => setEditing(p => p ? { ...p, category: e.target.value } : p)} />
+            </div>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="space-y-1.5">
+              <Label>Sale price (₦)</Label>
               <Input type="number" value={editing.price} onChange={e => setEditing(p => p ? { ...p, price: Number(e.target.value) } : p)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Original / slash price (₦)</Label>
+              <Input
+                type="number"
+                value={editing.originalPrice ?? ""}
+                placeholder="Leave blank to remove"
+                onChange={e => setEditing(p => p ? { ...p, originalPrice: e.target.value ? Number(e.target.value) : null } : p)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Stock</Label>
+              <Input type="number" value={editing.stock} onChange={e => setEditing(p => p ? { ...p, stock: Number(e.target.value) } : p)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Rating (1–5)</Label>
+              <Input type="number" min="1" max="5" step="0.1" value={editing.rating} onChange={e => setEditing(p => p ? { ...p, rating: Number(e.target.value) } : p)} />
             </div>
           </div>
 
@@ -125,24 +155,15 @@ export function AdminProductsManager() {
             <Textarea rows={3} value={editing.description} onChange={e => setEditing(p => p ? { ...p, description: e.target.value } : p)} />
           </div>
 
-          <div className="grid sm:grid-cols-3 gap-4">
-            <div className="space-y-1.5">
-              <Label>Category</Label>
-              <Input value={editing.category} onChange={e => setEditing(p => p ? { ...p, category: e.target.value } : p)} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Stock</Label>
-              <Input type="number" value={editing.stock} onChange={e => setEditing(p => p ? { ...p, stock: Number(e.target.value) } : p)} />
-            </div>
+          <div className="grid sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label>Product type</Label>
               <Input value={editing.productType} onChange={e => setEditing(p => p ? { ...p, productType: e.target.value } : p)} placeholder="e.g. Sneakers" />
             </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label>Colors (comma separated)</Label>
-            <Input value={editing.colors.join(", ")} onChange={e => setEditing(p => p ? { ...p, colors: e.target.value.split(",").map(c => c.trim()).filter(Boolean) } : p)} placeholder="Red, Blue, Black" />
+            <div className="space-y-1.5">
+              <Label>Colors (comma separated)</Label>
+              <Input value={editing.colors.join(", ")} onChange={e => setEditing(p => p ? { ...p, colors: e.target.value.split(",").map(c => c.trim()).filter(Boolean) } : p)} placeholder="Red, Blue, Black" />
+            </div>
           </div>
 
           <div className="space-y-1.5">
@@ -195,7 +216,11 @@ export function AdminProductsManager() {
             <img src={p.imageUrl} alt={p.name} className="h-14 w-14 rounded-md object-cover border border-border/40 shrink-0" />
             <div className="flex-1 min-w-0">
               <p className="font-medium text-sm truncate">{p.name}</p>
-              <p className="text-xs text-muted-foreground">{p.category} · {fmt(p.price)} · Stock: {p.stock}</p>
+              <p className="text-xs text-muted-foreground">
+                {p.category} · {fmt(p.price)}
+                {p.originalPrice ? <span className="line-through text-muted-foreground ml-1">{fmt(p.originalPrice)}</span> : ""}
+                {" · "}Stock: {p.stock} · ★{p.rating.toFixed(1)}
+              </p>
               {p.colors.length > 0 && <div className="flex gap-1 mt-1">{p.colors.map(c => <Badge key={c} variant="outline" className="text-[10px] py-0">{c}</Badge>)}</div>}
             </div>
             <div className="flex gap-2 shrink-0">

@@ -127,6 +127,7 @@ export const HealthCheckResponse = zod.object({
 export const ListProductsQueryParams = zod.object({
   category: zod.coerce.string().optional(),
   q: zod.coerce.string().optional(),
+  limit: zod.coerce.number().optional(),
 });
 
 export const ListProductsResponseItem = zod.object({
@@ -135,8 +136,12 @@ export const ListProductsResponseItem = zod.object({
   description: zod.string(),
   category: zod.string(),
   price: zod.number(),
+  originalPrice: zod.number().nullish(),
   currency: zod.string(),
   imageUrl: zod.string(),
+  images: zod.array(zod.string()),
+  colors: zod.array(zod.string()),
+  productType: zod.string(),
   rating: zod.number(),
   stock: zod.number(),
   sellerName: zod.string(),
@@ -158,10 +163,12 @@ export const CreateProductBody = zod.object({
   description: zod.string().min(1),
   category: zod.string().min(1),
   price: zod.number().min(createProductBodyPriceMin),
+  originalPrice: zod.number().nullish(),
   currency: zod.string().default(createProductBodyCurrencyDefault),
   imageUrl: zod.string().min(1),
   stock: zod.number().min(createProductBodyStockMin),
   sellerName: zod.string().min(1),
+  rating: zod.number().optional(),
   tags: zod.array(zod.string()).optional(),
 });
 
@@ -178,8 +185,12 @@ export const GetProductResponse = zod.object({
   description: zod.string(),
   category: zod.string(),
   price: zod.number(),
+  originalPrice: zod.number().nullish(),
   currency: zod.string(),
   imageUrl: zod.string(),
+  images: zod.array(zod.string()),
+  colors: zod.array(zod.string()),
+  productType: zod.string(),
   rating: zod.number(),
   stock: zod.number(),
   sellerName: zod.string(),
@@ -204,8 +215,12 @@ export const GetStorefrontSummaryResponse = zod.object({
       description: zod.string(),
       category: zod.string(),
       price: zod.number(),
+      originalPrice: zod.number().nullish(),
       currency: zod.string(),
       imageUrl: zod.string(),
+      images: zod.array(zod.string()),
+      colors: zod.array(zod.string()),
+      productType: zod.string(),
       rating: zod.number(),
       stock: zod.number(),
       sellerName: zod.string(),
@@ -233,8 +248,12 @@ export const GetCartResponse = zod.object({
         description: zod.string(),
         category: zod.string(),
         price: zod.number(),
+        originalPrice: zod.number().nullish(),
         currency: zod.string(),
         imageUrl: zod.string(),
+        images: zod.array(zod.string()),
+        colors: zod.array(zod.string()),
+        productType: zod.string(),
         rating: zod.number(),
         stock: zod.number(),
         sellerName: zod.string(),
@@ -262,8 +281,12 @@ export const AddCartItemResponse = zod.object({
         description: zod.string(),
         category: zod.string(),
         price: zod.number(),
+        originalPrice: zod.number().nullish(),
         currency: zod.string(),
         imageUrl: zod.string(),
+        images: zod.array(zod.string()),
+        colors: zod.array(zod.string()),
+        productType: zod.string(),
         rating: zod.number(),
         stock: zod.number(),
         sellerName: zod.string(),
@@ -290,8 +313,12 @@ export const RemoveCartItemResponse = zod.object({
         description: zod.string(),
         category: zod.string(),
         price: zod.number(),
+        originalPrice: zod.number().nullish(),
         currency: zod.string(),
         imageUrl: zod.string(),
+        images: zod.array(zod.string()),
+        colors: zod.array(zod.string()),
+        productType: zod.string(),
         rating: zod.number(),
         stock: zod.number(),
         sellerName: zod.string(),
@@ -305,11 +332,22 @@ export const RemoveCartItemResponse = zod.object({
 
 export const ListOrdersResponseItem = zod.object({
   id: zod.number(),
-  status: zod.enum(["placed", "processing", "shipped", "delivered"]),
+  status: zod.enum([
+    "placed",
+    "confirmed",
+    "dispatched",
+    "delivered",
+    "cancelled",
+  ]),
   total: zod.number(),
   currency: zod.string(),
   trackingCode: zod.string(),
   shippingAddress: zod.string(),
+  receiverName: zod.string().nullish(),
+  receiverEmail: zod.string().nullish(),
+  receiverPhone: zod.string().nullish(),
+  cashbackCode: zod.string().nullish(),
+  cashbackDiscount: zod.number().nullish(),
   placedBy: zod.enum(["user", "ai"]),
   createdAt: zod.string(),
   items: zod.array(
@@ -328,6 +366,10 @@ export const placeOrderBodyShippingAddressMin = 3;
 
 export const PlaceOrderBody = zod.object({
   shippingAddress: zod.string().min(placeOrderBodyShippingAddressMin),
+  receiverName: zod.string().optional(),
+  receiverEmail: zod.string().optional(),
+  receiverPhone: zod.string().optional(),
+  cashbackCode: zod.string().optional(),
   placedBy: zod.enum(["user", "ai"]).optional(),
 });
 
@@ -337,11 +379,22 @@ export const GetOrderParams = zod.object({
 
 export const GetOrderResponse = zod.object({
   id: zod.number(),
-  status: zod.enum(["placed", "processing", "shipped", "delivered"]),
+  status: zod.enum([
+    "placed",
+    "confirmed",
+    "dispatched",
+    "delivered",
+    "cancelled",
+  ]),
   total: zod.number(),
   currency: zod.string(),
   trackingCode: zod.string(),
   shippingAddress: zod.string(),
+  receiverName: zod.string().nullish(),
+  receiverEmail: zod.string().nullish(),
+  receiverPhone: zod.string().nullish(),
+  cashbackCode: zod.string().nullish(),
+  cashbackDiscount: zod.number().nullish(),
   placedBy: zod.enum(["user", "ai"]),
   createdAt: zod.string(),
   items: zod.array(
@@ -363,16 +416,33 @@ export const UpdateOrderStatusParams = zod.object({
 });
 
 export const UpdateOrderStatusBody = zod.object({
-  status: zod.enum(["placed", "processing", "shipped", "delivered"]),
+  status: zod.enum([
+    "placed",
+    "confirmed",
+    "dispatched",
+    "delivered",
+    "cancelled",
+  ]),
 });
 
 export const UpdateOrderStatusResponse = zod.object({
   id: zod.number(),
-  status: zod.enum(["placed", "processing", "shipped", "delivered"]),
+  status: zod.enum([
+    "placed",
+    "confirmed",
+    "dispatched",
+    "delivered",
+    "cancelled",
+  ]),
   total: zod.number(),
   currency: zod.string(),
   trackingCode: zod.string(),
   shippingAddress: zod.string(),
+  receiverName: zod.string().nullish(),
+  receiverEmail: zod.string().nullish(),
+  receiverPhone: zod.string().nullish(),
+  cashbackCode: zod.string().nullish(),
+  cashbackDiscount: zod.number().nullish(),
   placedBy: zod.enum(["user", "ai"]),
   createdAt: zod.string(),
   items: zod.array(
@@ -427,11 +497,22 @@ export const DeleteUserParams = zod.object({
  */
 export const ListAllOrdersResponseItem = zod.object({
   id: zod.number(),
-  status: zod.enum(["placed", "processing", "shipped", "delivered"]),
+  status: zod.enum([
+    "placed",
+    "confirmed",
+    "dispatched",
+    "delivered",
+    "cancelled",
+  ]),
   total: zod.number(),
   currency: zod.string(),
   trackingCode: zod.string(),
   shippingAddress: zod.string(),
+  receiverName: zod.string().nullish(),
+  receiverEmail: zod.string().nullish(),
+  receiverPhone: zod.string().nullish(),
+  cashbackCode: zod.string().nullish(),
+  cashbackDiscount: zod.number().nullish(),
   placedBy: zod.enum(["user", "ai"]),
   createdAt: zod.string(),
   items: zod.array(
@@ -446,6 +527,139 @@ export const ListAllOrdersResponseItem = zod.object({
 });
 export const ListAllOrdersResponse = zod.array(ListAllOrdersResponseItem);
 
+/**
+ * @summary Sales summary (today, month, total + daily chart data)
+ */
+export const GetAdminSalesSummaryResponse = zod.object({
+  todayTotal: zod.number(),
+  monthTotal: zod.number(),
+  allTimeTotal: zod.number(),
+  todayOrders: zod.number(),
+  monthOrders: zod.number(),
+  allTimeOrders: zod.number(),
+  dailyChart: zod.array(
+    zod.object({
+      date: zod.string(),
+      total: zod.number(),
+      orders: zod.number(),
+    }),
+  ),
+});
+
+/**
+ * @summary List all cashback codes (admin only)
+ */
+export const ListCashbackCodesResponseItem = zod.object({
+  id: zod.number(),
+  code: zod.string(),
+  amount: zod.number(),
+  maxUses: zod.number(),
+  usedCount: zod.number(),
+  isActive: zod.boolean(),
+  createdAt: zod.string(),
+});
+export const ListCashbackCodesResponse = zod.array(
+  ListCashbackCodesResponseItem,
+);
+
+/**
+ * @summary Create a cashback code (admin only)
+ */
+export const createCashbackCodeBodyCodeMin = 3;
+
+export const CreateCashbackCodeBody = zod.object({
+  code: zod.string().min(createCashbackCodeBodyCodeMin),
+  amount: zod.number().min(1),
+  maxUses: zod.number().min(1),
+});
+
+/**
+ * @summary Delete a cashback code (admin only)
+ */
+export const DeleteCashbackCodeParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary Validate a cashback code and return discount amount
+ */
+export const ValidateCashbackCodeBody = zod.object({
+  code: zod.string(),
+});
+
+export const ValidateCashbackCodeResponse = zod.object({
+  valid: zod.boolean(),
+  amount: zod.number().optional(),
+  code: zod.string().optional(),
+  message: zod.string().optional(),
+});
+
+/**
+ * @summary List landing pages (admin only)
+ */
+export const ListLandingPagesResponseItem = zod.object({
+  id: zod.number(),
+  slug: zod.string(),
+  title: zod.string(),
+  description: zod.string(),
+  productIds: zod.array(zod.number()),
+  createdAt: zod.string(),
+});
+export const ListLandingPagesResponse = zod.array(ListLandingPagesResponseItem);
+
+/**
+ * @summary Create a landing page (admin only)
+ */
+export const createLandingPageBodySlugMin = 2;
+
+export const CreateLandingPageBody = zod.object({
+  slug: zod.string().min(createLandingPageBodySlugMin),
+  title: zod.string().min(1),
+  description: zod.string().optional(),
+  productIds: zod.array(zod.number()),
+});
+
+/**
+ * @summary Delete a landing page (admin only)
+ */
+export const DeleteLandingPageParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary Get a public landing page by slug
+ */
+export const GetLandingPageParams = zod.object({
+  slug: zod.coerce.string(),
+});
+
+export const GetLandingPageResponse = zod.object({
+  id: zod.number(),
+  slug: zod.string(),
+  title: zod.string(),
+  description: zod.string(),
+  products: zod.array(
+    zod.object({
+      id: zod.number(),
+      name: zod.string(),
+      description: zod.string(),
+      category: zod.string(),
+      price: zod.number(),
+      originalPrice: zod.number().nullish(),
+      currency: zod.string(),
+      imageUrl: zod.string(),
+      images: zod.array(zod.string()),
+      colors: zod.array(zod.string()),
+      productType: zod.string(),
+      rating: zod.number(),
+      stock: zod.number(),
+      sellerName: zod.string(),
+      tags: zod.array(zod.string()),
+    }),
+  ),
+  createdAt: zod.string(),
+});
+
 export const ListChatMessagesResponseItem = zod.object({
   id: zod.number(),
   role: zod.enum(["user", "assistant", "system"]),
@@ -459,8 +673,12 @@ export const ListChatMessagesResponseItem = zod.object({
         description: zod.string(),
         category: zod.string(),
         price: zod.number(),
+        originalPrice: zod.number().nullish(),
         currency: zod.string(),
         imageUrl: zod.string(),
+        images: zod.array(zod.string()),
+        colors: zod.array(zod.string()),
+        productType: zod.string(),
         rating: zod.number(),
         stock: zod.number(),
         sellerName: zod.string(),
@@ -494,8 +712,12 @@ export const SendChatMessageResponse = zod.object({
           description: zod.string(),
           category: zod.string(),
           price: zod.number(),
+          originalPrice: zod.number().nullish(),
           currency: zod.string(),
           imageUrl: zod.string(),
+          images: zod.array(zod.string()),
+          colors: zod.array(zod.string()),
+          productType: zod.string(),
           rating: zod.number(),
           stock: zod.number(),
           sellerName: zod.string(),
@@ -517,8 +739,12 @@ export const SendChatMessageResponse = zod.object({
           description: zod.string(),
           category: zod.string(),
           price: zod.number(),
+          originalPrice: zod.number().nullish(),
           currency: zod.string(),
           imageUrl: zod.string(),
+          images: zod.array(zod.string()),
+          colors: zod.array(zod.string()),
+          productType: zod.string(),
           rating: zod.number(),
           stock: zod.number(),
           sellerName: zod.string(),
@@ -534,8 +760,12 @@ export const SendChatMessageResponse = zod.object({
       description: zod.string(),
       category: zod.string(),
       price: zod.number(),
+      originalPrice: zod.number().nullish(),
       currency: zod.string(),
       imageUrl: zod.string(),
+      images: zod.array(zod.string()),
+      colors: zod.array(zod.string()),
+      productType: zod.string(),
       rating: zod.number(),
       stock: zod.number(),
       sellerName: zod.string(),
@@ -552,8 +782,12 @@ export const SendChatMessageResponse = zod.object({
         description: zod.string(),
         category: zod.string(),
         price: zod.number(),
+        originalPrice: zod.number().nullish(),
         currency: zod.string(),
         imageUrl: zod.string(),
+        images: zod.array(zod.string()),
+        colors: zod.array(zod.string()),
+        productType: zod.string(),
         rating: zod.number(),
         stock: zod.number(),
         sellerName: zod.string(),
@@ -564,11 +798,22 @@ export const SendChatMessageResponse = zod.object({
   placedOrder: zod
     .object({
       id: zod.number(),
-      status: zod.enum(["placed", "processing", "shipped", "delivered"]),
+      status: zod.enum([
+        "placed",
+        "confirmed",
+        "dispatched",
+        "delivered",
+        "cancelled",
+      ]),
       total: zod.number(),
       currency: zod.string(),
       trackingCode: zod.string(),
       shippingAddress: zod.string(),
+      receiverName: zod.string().nullish(),
+      receiverEmail: zod.string().nullish(),
+      receiverPhone: zod.string().nullish(),
+      cashbackCode: zod.string().nullish(),
+      cashbackDiscount: zod.number().nullish(),
       placedBy: zod.enum(["user", "ai"]),
       createdAt: zod.string(),
       items: zod.array(

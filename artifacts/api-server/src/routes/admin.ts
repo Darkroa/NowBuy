@@ -1,6 +1,6 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { db, usersTable, ordersTable } from "@workspace/db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, gte, and, sql } from "drizzle-orm";
 import { UpdateUserRoleBody } from "@workspace/api-zod";
 import { requireRole } from "../lib/auth";
 import { serializeOrder } from "../lib/serializers";
@@ -57,6 +57,42 @@ router.delete("/admin/users/:id", requireRole("admin"), async (req: Request, res
 router.get("/admin/orders", requireRole("admin", "pm"), async (_req: Request, res: Response) => {
   const rows = await db.select().from(ordersTable).orderBy(desc(ordersTable.createdAt));
   res.json(rows.map(serializeOrder));
+});
+
+router.get("/admin/sales-summary", requireRole("admin", "pm"), async (_req: Request, res: Response) => {
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  const allOrders = await db.select().from(ordersTable).orderBy(desc(ordersTable.createdAt));
+  const active = allOrders.filter(o => o.status !== "cancelled");
+
+  const todayOrders = active.filter(o => o.createdAt >= todayStart);
+  const monthOrders = active.filter(o => o.createdAt >= monthStart);
+
+  const sum = (arr: typeof active) => arr.reduce((a, o) => a + o.total, 0);
+
+  const last30Days: { date: string; total: number; orders: number }[] = [];
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+    const next = new Date(d.getTime() + 86400000);
+    const dayOrders = active.filter(o => o.createdAt >= d && o.createdAt < next);
+    last30Days.push({
+      date: d.toISOString().slice(0, 10),
+      total: sum(dayOrders),
+      orders: dayOrders.length,
+    });
+  }
+
+  res.json({
+    todayTotal: sum(todayOrders),
+    monthTotal: sum(monthOrders),
+    allTimeTotal: sum(active),
+    todayOrders: todayOrders.length,
+    monthOrders: monthOrders.length,
+    allTimeOrders: active.length,
+    dailyChart: last30Days,
+  });
 });
 
 export default router;

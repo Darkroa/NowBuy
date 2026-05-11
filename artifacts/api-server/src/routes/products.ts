@@ -14,6 +14,7 @@ router.post("/products", requireRole("admin", "pm"), async (req: Request, res: R
     return;
   }
   const d = parsed.data;
+  const body = req.body as { originalPrice?: number; rating?: number };
   const [created] = await db
     .insert(productsTable)
     .values({
@@ -21,10 +22,12 @@ router.post("/products", requireRole("admin", "pm"), async (req: Request, res: R
       description: d.description,
       category: d.category.toLowerCase(),
       price: d.price,
+      originalPrice: body.originalPrice ?? null,
       currency: d.currency ?? "NGN",
       imageUrl: d.imageUrl,
       stock: d.stock,
       sellerName: d.sellerName,
+      rating: body.rating ?? 4.5,
       tags: d.tags ?? [],
     })
     .returning();

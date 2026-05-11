@@ -136,10 +136,11 @@ router.get("/settings/bank", async (_req: Request, res: Response) => {
 });
 
 router.put("/settings/bank", requireRole("admin"), async (req: Request, res: Response) => {
-  const { bankName, accountName, accountNumber } = req.body as {
+  const { bankName, accountName, accountNumber, bankLogo } = req.body as {
     bankName: string;
     accountName: string;
     accountNumber: string;
+    bankLogo?: string;
   };
 
   if (!bankName || !accountName || !accountNumber) {
@@ -147,14 +148,15 @@ router.put("/settings/bank", requireRole("admin"), async (req: Request, res: Res
     return;
   }
 
-  const value = JSON.stringify({ bankName, accountName, accountNumber });
+  const payload = { bankName, accountName, accountNumber, bankLogo: bankLogo ?? "" };
+  const value = JSON.stringify(payload);
 
   await db
     .insert(settingsTable)
     .values({ key: "bank_details", value })
     .onConflictDoUpdate({ target: settingsTable.key, set: { value, updatedAt: new Date() } });
 
-  res.json({ bankName, accountName, accountNumber });
+  res.json(payload);
 });
 
 export default router;

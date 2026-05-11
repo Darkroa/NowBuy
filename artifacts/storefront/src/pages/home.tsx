@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { useGetStorefrontSummary, useListCategories } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowRight, Search, Sparkles } from "lucide-react";
+import { ArrowRight, Search, Sparkles, ChevronDown, ChevronUp } from "lucide-react";
 import { ProductCard } from "@/components/product-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FeaturedCarousel } from "@/components/featured-carousel";
@@ -11,6 +11,7 @@ import { FeaturedCarousel } from "@/components/featured-carousel";
 export default function Home() {
   const [, setLocation] = useLocation();
   const [query, setQuery] = useState("");
+  const [catsExpanded, setCatsExpanded] = useState(false);
 
   const { data: summary, isLoading: isSummaryLoading } = useGetStorefrontSummary();
   const { data: categories, isLoading: isCategoriesLoading } = useListCategories();
@@ -22,6 +23,8 @@ export default function Home() {
       setLocation("/assistant");
     }
   };
+
+  const visibleCats = catsExpanded ? categories : categories?.slice(0, 6);
 
   return (
     <div className="flex flex-col min-h-[calc(100vh-4rem)]">
@@ -81,8 +84,8 @@ export default function Home() {
       </section>
 
       {/* Featured Carousel */}
-      <section className="py-16 container max-w-screen-xl mx-auto px-6">
-        <div className="flex items-end justify-between mb-8">
+      <section className="py-12 container max-w-screen-xl mx-auto px-6">
+        <div className="flex items-end justify-between mb-6">
           <div>
             <h2 className="text-3xl font-serif font-bold tracking-tight">Featured</h2>
             <p className="text-muted-foreground mt-1 text-sm">Handpicked products, updated regularly.</p>
@@ -96,8 +99,8 @@ export default function Home() {
         <FeaturedCarousel />
       </section>
 
-      {/* Featured Products Grid */}
-      <section className="pb-16 container max-w-screen-xl mx-auto px-6">
+      {/* New arrivals */}
+      <section className="pb-12 container max-w-screen-xl mx-auto px-6">
         <h2 className="text-2xl font-serif font-bold tracking-tight mb-6">New arrivals</h2>
         {isSummaryLoading ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
@@ -118,30 +121,44 @@ export default function Home() {
         )}
       </section>
 
-      {/* Categories */}
-      <section className="py-20 bg-muted/30 border-t border-border/40">
+      {/* Shop by Category — compact collapsible */}
+      <section className="py-10 bg-muted/30 border-t border-border/40">
         <div className="container max-w-screen-xl mx-auto px-6">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-serif font-bold tracking-tight">Shop by Category</h2>
-            <p className="text-muted-foreground mt-2">Explore our curated departments.</p>
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-xl font-serif font-bold tracking-tight">Shop by Category</h2>
+              <p className="text-muted-foreground mt-0.5 text-sm">Explore our curated departments.</p>
+            </div>
+            <button
+              onClick={() => setCatsExpanded(e => !e)}
+              className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors"
+            >
+              {catsExpanded ? <><ChevronUp className="h-4 w-4" /> Show less</> : <><ChevronDown className="h-4 w-4" /> All categories</>}
+            </button>
           </div>
 
           {isCategoriesLoading ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {[1, 2, 3, 4].map((i) => (
-                <Skeleton key={i} className="h-32 rounded-2xl" />
-              ))}
+            <div className="flex flex-wrap gap-2">
+              {[1, 2, 3, 4, 5, 6].map((i) => <Skeleton key={i} className="h-9 w-24 rounded-full" />)}
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {categories?.map((category) => (
+            <div className="flex flex-wrap gap-2">
+              {visibleCats?.map((category) => (
                 <Link key={category.slug} href={`/products?category=${category.slug}`}>
-                  <div className="group relative overflow-hidden rounded-2xl bg-card border border-border/50 p-8 text-center hover:border-primary/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 cursor-pointer flex flex-col items-center justify-center min-h-[160px]">
-                    <h3 className="font-serif font-bold text-xl group-hover:text-primary transition-colors">{category.name}</h3>
-                    <p className="text-sm text-muted-foreground mt-2">{category.productCount} items</p>
+                  <div className="group flex items-center gap-2 rounded-full bg-card border border-border/50 px-4 py-2 hover:border-primary/50 hover:bg-primary/5 transition-all duration-200 cursor-pointer">
+                    <span className="font-medium text-sm group-hover:text-primary transition-colors">{category.name}</span>
+                    <span className="text-xs text-muted-foreground bg-muted rounded-full px-1.5 py-0.5">{category.productCount}</span>
                   </div>
                 </Link>
               ))}
+              {!catsExpanded && (categories?.length ?? 0) > 6 && (
+                <button
+                  onClick={() => setCatsExpanded(true)}
+                  className="flex items-center gap-1 rounded-full border border-dashed border-border/60 px-4 py-2 text-sm text-muted-foreground hover:border-primary/50 hover:text-primary transition-all"
+                >
+                  +{(categories?.length ?? 0) - 6} more
+                </button>
+              )}
             </div>
           )}
         </div>

@@ -20,6 +20,7 @@ import ResetPassword from "@/pages/reset-password";
 import Notifications from "@/pages/notifications";
 import Support from "@/pages/support";
 import PaymentCallback from "@/pages/payment-callback";
+import ShopLanding from "@/pages/shop-landing";
 
 const queryClient = new QueryClient();
 
@@ -42,6 +43,7 @@ function Router() {
         <Route path="/signup" component={Account} />
         <Route path="/notifications" component={Notifications} />
         <Route path="/support" component={Support} />
+        <Route path="/shop/:slug" component={ShopLanding} />
         <Route path="/admin" component={() => <Admin section="dashboard" />} />
         <Route path="/admin/users" component={() => <Admin section="users" />} />
         <Route path="/admin/orders" component={() => <Admin section="orders" />} />
@@ -51,6 +53,8 @@ function Router() {
         <Route path="/admin/password" component={() => <Admin section="password" />} />
         <Route path="/admin/notifications" component={() => <Admin section="notifications" />} />
         <Route path="/admin/support" component={() => <Admin section="support" />} />
+        <Route path="/admin/cashback" component={() => <Admin section="cashback" />} />
+        <Route path="/admin/landing-pages" component={() => <Admin section="landing-pages" />} />
         <Route path="/pm" component={() => <PMConsole section="dashboard" />} />
         <Route path="/pm/orders" component={() => <PMConsole section="orders" />} />
         <Route path="/pm/catalog" component={() => <PMConsole section="catalog" />} />

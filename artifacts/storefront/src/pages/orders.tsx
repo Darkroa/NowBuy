@@ -72,7 +72,9 @@ export default function Orders() {
               <div className="flex items-center gap-3">
                 <Badge variant="outline" className={`capitalize px-3 py-1 font-medium ${
                   order.status === 'delivered' ? 'bg-emerald-500/10 text-emerald-700 border-emerald-200' :
-                  order.status === 'shipped' ? 'bg-blue-500/10 text-blue-700 border-blue-200' :
+                  order.status === 'dispatched' ? 'bg-violet-500/10 text-violet-700 border-violet-200' :
+                  order.status === 'confirmed' ? 'bg-blue-500/10 text-blue-700 border-blue-200' :
+                  order.status === 'cancelled' ? 'bg-rose-500/10 text-rose-700 border-rose-200' :
                   'bg-primary/10 text-primary border-primary/20'
                 }`}>
                   {order.status}

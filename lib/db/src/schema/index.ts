@@ -7,3 +7,5 @@ export * from "./password-reset";
 export * from "./settings";
 export * from "./notifications";
 export * from "./support-tickets";
+export * from "./cashback";
+export * from "./landing-pages";
